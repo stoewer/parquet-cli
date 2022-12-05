@@ -1,0 +1,10 @@
+/parquet-cli
+/profile.cov
+
+.idea
+.vscode
+
+*~
+*.swp
+
+.DS_Store
