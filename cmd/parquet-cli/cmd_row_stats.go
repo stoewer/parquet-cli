@@ -1,6 +1,11 @@
 package main
 
-import "fmt"
+import (
+	"os"
+
+	"github.com/grafana/parquet-cli/pkg/inspect"
+	"github.com/grafana/parquet-cli/pkg/output"
+)
 
 type rowStats struct {
 	outputOptions
@@ -9,6 +14,15 @@ type rowStats struct {
 }
 
 func (rs *rowStats) Run() error {
-	fmt.Println("Sub command row-stats not implemented yet")
-	return nil
+	file, err := openParquetFile(rs.File)
+	if err != nil {
+		return err
+	}
+
+	rowStats, err := inspect.NewRowStatCalculator(file, rs.Columns)
+	if err != nil {
+		return err
+	}
+
+	return output.Print(os.Stdout, output.Format(rs.Output), rowStats)
 }

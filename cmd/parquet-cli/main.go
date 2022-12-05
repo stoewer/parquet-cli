@@ -1,9 +1,8 @@
 package main
 
 import (
-	"errors"
-
 	"github.com/alecthomas/kong"
+	"github.com/grafana/parquet-cli/pkg/output"
 )
 
 var cli struct {
@@ -13,14 +12,13 @@ var cli struct {
 }
 
 type outputOptions struct {
+	// TODO try output format here
 	Output string `short:"o" optional:"" default:"json"`
 }
 
 func (o *outputOptions) Validate() error {
-	if o.Output != "json" && o.Output != "tab" && o.Output != "csv" {
-		return errors.New("output is expected to be 'json', 'tab', or 'csv'")
-	}
-	return nil
+	f := output.Format(o.Output)
+	return f.Validate()
 }
 
 func main() {

@@ -20,3 +20,9 @@ linters:
     - unconvert
     - unparam
     - unused
+
+linters-settings:
+  errcheck:
+    exclude: ./.errcheck-exclude.txt
+  cyclop:
+    max-complexity: 15

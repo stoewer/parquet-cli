@@ -9,3 +9,6 @@ insert_final_newline = true
 
 [{Makefile,go.mod,go.sum,*.go}]
 indent_style = tab
+
+[{*.yml,*.yaml}]
+indent_size = 2
