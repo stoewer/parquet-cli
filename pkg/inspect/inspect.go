@@ -2,6 +2,11 @@ package inspect
 
 import "github.com/segmentio/parquet-go"
 
+type Pagination struct {
+	Limit  *int64
+	Offset int64
+}
+
 func LeafColumns(col *parquet.Column) []*parquet.Column {
 	if col.Leaf() {
 		return []*parquet.Column{col}

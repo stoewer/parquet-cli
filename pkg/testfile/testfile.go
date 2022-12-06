@@ -23,19 +23,24 @@ var (
 )
 
 type Flat struct {
-	ColA int
-	ColB string
-	ColC *string
+	ColA int     `parquet:",snappy"`
+	ColB string  `parquet:",snappy"`
+	ColC *string `parquet:",snappy,optional"`
 }
 
 type Nested struct {
-	ColA int
+	ColA int `parquet:",snappy"`
 	ColB []Inner
 }
 
 type Inner struct {
-	InnerA string
-	InnerB *string
+	InnerA string `parquet:",snappy"`
+	Map    []InnerMap
+}
+
+type InnerMap struct {
+	Key string `parquet:",snappy,dict"`
+	Val *int   `parquet:",snappy,optional"`
 }
 
 func New[T any](t testing.TB, data []T) string {
@@ -88,8 +93,12 @@ func RandomNested(rows, levels int) []Nested {
 	for i := 0; i < rows; i++ {
 		row := Nested{ColA: randomInt()}
 		for j := 0; j < levels; j++ {
-			inner := Inner{InnerA: randomStr(), InnerB: randomWord()}
+			inner := Inner{InnerA: randomStr()}
 			row.ColB = append(row.ColB, inner)
+			for k := 0; k < levels; k++ {
+				entry := InnerMap{Key: randomWord(), Val: ptr(randomInt())}
+				inner.Map = append(inner.Map, entry)
+			}
 		}
 		data = append(data, row)
 	}
@@ -109,6 +118,10 @@ func randomStr() string {
 	return string(s)
 }
 
-func randomWord() *string {
-	return &words[rnd.Intn(len(words))]
+func randomWord() string {
+	return words[rnd.Intn(len(words))]
+}
+
+func ptr[T any](v T) *T {
+	return &v
 }
