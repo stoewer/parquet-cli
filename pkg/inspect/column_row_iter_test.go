@@ -32,11 +32,11 @@ func TestColumnRowIterator_NextRow(t *testing.T) {
 		},
 	}
 
+	filename := testfile.New(t, data)
+
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("column %d", tt.columnIdx), func(t *testing.T) {
-			file, remove, err := testfile.New(data)
-			require.NoError(t, err)
-			t.Cleanup(remove)
+			file := testfile.Open(t, filename)
 
 			columns := LeafColumns(file.Root())
 			rows, err := newColumnRowIterator(columns[tt.columnIdx])
@@ -51,10 +51,9 @@ func TestColumnRowIterator_NextRow(t *testing.T) {
 var globalRow []parquet.Value
 
 func BenchmarkColumnRowIterator_NextRow(b *testing.B) {
-	data := testfile.RandomNested(100_000, 100)
-	file, cleanup, _ := testfile.New(data)
+	filename := testfile.New(b, testfile.RandomNested(100_000, 100))
+	file := testfile.Open(b, filename)
 	cols := LeafColumns(file.Root())
-	b.Cleanup(cleanup)
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {

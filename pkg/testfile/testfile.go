@@ -3,6 +3,9 @@ package testfile
 import (
 	"math/rand"
 	"os"
+	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/segmentio/parquet-go"
 )
@@ -35,50 +38,49 @@ type Inner struct {
 	InnerB *string
 }
 
-func New[T any](data []T) (*parquet.File, func(), error) {
+func New[T any](t testing.TB, data []T) string {
+	t.Helper()
+
+	// creat temporary file
 	file, err := os.CreateTemp("", tempPattern)
-	if err != nil {
-		return nil, nil, err
-	}
+	require.NoError(t, err)
 	name := file.Name()
+
+	defer file.Close()
+	t.Cleanup(func() {
+		_ = os.Remove(name)
+	})
 
 	// write file
 	writer := parquet.NewGenericWriter[T](file)
+	defer writer.Close()
 
 	var count int
 	for count < len(data) {
 		c, err := writer.Write(data)
-		if err != nil {
-			writer.Close()
-			file.Close()
-			return nil, nil, err
-		}
+		require.NoError(t, err)
 		count += c
 	}
-	writer.Close()
-	file.Close()
 
-	// open again as parquet file
-	info, err := os.Stat(name)
-	if err != nil {
-		return nil, nil, err
-	}
-	file, err = os.Open(name)
-	if err != nil {
-		return nil, nil, err
-	}
+	return name
+}
+
+func Open(t testing.TB, name string) *parquet.File {
+	t.Helper()
+
+	file, err := os.Open(name)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_ = file.Close()
+	})
+
+	info, err := file.Stat()
+	require.NoError(t, err)
 
 	pfile, err := parquet.OpenFile(file, info.Size())
-	if err != nil {
-		file.Close()
-		return nil, nil, err
-	}
-	cleanup := func() {
-		file.Close()
-		_ = os.Remove(name)
-	}
+	require.NoError(t, err)
 
-	return pfile, cleanup, nil
+	return pfile
 }
 
 func RandomNested(rows, levels int) []Nested {
