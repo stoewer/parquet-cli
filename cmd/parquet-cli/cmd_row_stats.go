@@ -3,8 +3,8 @@ package main
 import (
 	"os"
 
-	"github.com/grafana/parquet-cli/pkg/inspect"
-	"github.com/grafana/parquet-cli/pkg/output"
+	"github.com/stoewer/parquet-cli/pkg/inspect"
+	"github.com/stoewer/parquet-cli/pkg/output"
 )
 
 type rowStats struct {

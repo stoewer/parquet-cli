@@ -3,9 +3,9 @@ package inspect
 import (
 	"fmt"
 
-	"github.com/grafana/parquet-cli/pkg/output"
 	"github.com/pkg/errors"
 	"github.com/segmentio/parquet-go"
+	"github.com/stoewer/parquet-cli/pkg/output"
 )
 
 var (

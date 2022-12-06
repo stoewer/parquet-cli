@@ -1,4 +1,4 @@
-module github.com/grafana/parquet-cli
+module github.com/stoewer/parquet-cli
 
 go 1.19
 

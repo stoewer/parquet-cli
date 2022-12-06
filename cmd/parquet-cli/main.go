@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/alecthomas/kong"
-	"github.com/grafana/parquet-cli/pkg/output"
+	"github.com/stoewer/parquet-cli/pkg/output"
 )
 
 var cli struct {
