@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+// Format describes a printable data representation.
 type Format string
 
 const (
@@ -28,17 +29,28 @@ func (f *Format) Validate() error {
 	}
 }
 
+// A Table that can be printed / encoded in different output formats.
 type Table interface {
+	// Header returns the header of the table
 	Header() []interface{}
+	// NextRow returns a new TableRow until the error is io.EOF
 	NextRow() (TableRow, error)
 }
 
+// A TableRow represents all data that belongs to a table row.
 type TableRow interface {
+	// Row returns the number of this table row.
 	Row() int
+	// Cells returns all table cells for this row. This is used to
+	// print tabular formats such csv. The returned slice has the same
+	// length as the header slice returned by the parent Table.
 	Cells() []interface{}
+	// Data returns the table row suitable for structured data formats
+	// such as json.
 	Data() interface{}
 }
 
+// Print writes the Table data to w using the provided format.
 func Print(w io.Writer, f Format, data Table) error {
 	switch f {
 	case FormatJSON:
