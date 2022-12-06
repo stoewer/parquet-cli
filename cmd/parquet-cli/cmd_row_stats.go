@@ -24,5 +24,5 @@ func (rs *rowStats) Run() error {
 		return err
 	}
 
-	return output.Print(os.Stdout, output.Format(rs.Output), rowStats)
+	return output.Print(os.Stdout, rs.Output, rowStats)
 }

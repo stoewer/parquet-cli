@@ -12,13 +12,11 @@ var cli struct {
 }
 
 type outputOptions struct {
-	// TODO try output format here
-	Output string `short:"o" optional:"" default:"json"`
+	Output output.Format `short:"o" optional:"" default:"tab"`
 }
 
 func (o *outputOptions) Validate() error {
-	f := output.Format(o.Output)
-	return f.Validate()
+	return o.Output.Validate()
 }
 
 func main() {
