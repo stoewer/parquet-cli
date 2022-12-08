@@ -6,20 +6,22 @@ import (
 	"testing"
 
 	"github.com/segmentio/parquet-go"
-	"github.com/stoewer/parquet-cli/pkg/testfile"
+	tf "github.com/stoewer/parquet-cli/pkg/testfile"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestColumnRowIterator_NextRow(t *testing.T) {
-	data := []testfile.Nested{
-		{ColA: 1, ColB: []testfile.Inner{{InnerA: "a", InnerB: nil}, {InnerA: "b", InnerB: ptr("aa")}}},
-		{ColA: 2, ColB: []testfile.Inner{{InnerA: "c", InnerB: ptr("bb")}}},
-		{ColA: 3, ColB: []testfile.Inner{{InnerA: "d", InnerB: ptr("cc")}, {InnerA: "e", InnerB: ptr("dd")}}},
+	data := []tf.Nested{
+		{ColA: 1, ColB: []tf.Inner{{InnerA: "a", Map: []tf.InnerMap{{Key: "aa", Val: ptr(11)}, {Key: "bb"}}}, {InnerA: "b", Map: []tf.InnerMap{{Key: "cc", Val: ptr(33)}}}}},
+		{ColA: 2, ColB: []tf.Inner{{InnerA: "c"}}},
+		{ColA: 3, ColB: []tf.Inner{{InnerA: "d", Map: []tf.InnerMap{{Key: "dd", Val: ptr(44)}}}, {InnerA: "e", Map: []tf.InnerMap{{Key: "ee"}, {Key: "ff", Val: ptr(66)}}}}},
 	}
 
 	tests := []struct {
 		columnIdx int
+		limit     *int64
+		offset    int64
 		expected  [][]string
 	}{
 		{
@@ -28,18 +30,34 @@ func TestColumnRowIterator_NextRow(t *testing.T) {
 		},
 		{
 			columnIdx: 2,
-			expected:  [][]string{{"", "aa"}, {"bb"}, {"cc", "dd"}},
+			expected:  [][]string{{"aa", "bb", "cc"}, {""}, {"dd", "ee", "ff"}},
+		},
+		{
+			columnIdx: 2,
+			offset:    1,
+			expected:  [][]string{{""}, {"dd", "ee", "ff"}},
+		},
+		{
+			columnIdx: 1,
+			offset:    1,
+			limit:     ptr(int64(1)),
+			expected:  [][]string{{"c"}},
 		},
 	}
 
-	filename := testfile.New(t, data)
+	filename := tf.New(t, data)
 
 	for _, tt := range tests {
-		t.Run(fmt.Sprintf("column %d", tt.columnIdx), func(t *testing.T) {
-			file := testfile.Open(t, filename)
+		var l int64
+		if tt.limit != nil {
+			l = *tt.limit
+		}
+
+		t.Run(fmt.Sprintf("col %d limit %d offset %d", tt.columnIdx, l, tt.offset), func(t *testing.T) {
+			file := tf.Open(t, filename)
 
 			columns := LeafColumns(file.Root())
-			rows, err := newColumnRowIterator(columns[tt.columnIdx])
+			rows, err := newColumnRowIterator(columns[tt.columnIdx], Pagination{Limit: tt.limit, Offset: tt.offset})
 			require.NoError(t, err)
 
 			rowsStr := rowsToStr(t, rows)
@@ -51,13 +69,13 @@ func TestColumnRowIterator_NextRow(t *testing.T) {
 var globalRow []parquet.Value
 
 func BenchmarkColumnRowIterator_NextRow(b *testing.B) {
-	filename := testfile.New(b, testfile.RandomNested(100_000, 100))
-	file := testfile.Open(b, filename)
+	filename := tf.New(b, tf.RandomNested(100_000, 10))
+	file := tf.Open(b, filename)
 	cols := LeafColumns(file.Root())
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
-		rows1, _ := newColumnRowIterator(cols[1])
+		rows1, _ := newColumnRowIterator(cols[1], Pagination{})
 		r, err := rows1.NextRow()
 		for err == nil {
 			r, err = rows1.NextRow()

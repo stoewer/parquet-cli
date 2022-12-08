@@ -10,7 +10,9 @@ import (
 type rowStats struct {
 	outputOptions
 	File    string `arg:""`
-	Columns []int  `short:"c" optional:"" help:"Restrict the Output to the following columns"`
+	Columns []int  `short:"c" optional:"" help:"Restrict the output to the following columns"`
+	Limit   *int64 `optional:"" help:"Limit the output to the given number of rows"`
+	Offset  int64  `optional:"" help:"Begin the output at this row offset"`
 }
 
 func (rs *rowStats) Run() error {
@@ -19,7 +21,15 @@ func (rs *rowStats) Run() error {
 		return err
 	}
 
-	rowStats, err := inspect.NewRowStatCalculator(file, rs.Columns)
+	options := inspect.RowStatOptions{
+		SelectedCols: rs.Columns,
+		Pagination: inspect.Pagination{
+			Limit:  rs.Limit,
+			Offset: rs.Offset,
+		},
+	}
+
+	rowStats, err := inspect.NewRowStatCalculator(file, options)
 	if err != nil {
 		return err
 	}
