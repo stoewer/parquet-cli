@@ -56,7 +56,7 @@ func TestColumnRowIterator_NextRow(t *testing.T) {
 		t.Run(fmt.Sprintf("col %d limit %d offset %d", tt.columnIdx, l, tt.offset), func(t *testing.T) {
 			file := tf.Open(t, filename)
 
-			columns := LeafColumns(file.Root())
+			columns := LeafColumns(file)
 			rows, err := newColumnRowIterator(columns[tt.columnIdx], Pagination{Limit: tt.limit, Offset: tt.offset})
 			require.NoError(t, err)
 
@@ -71,7 +71,7 @@ var globalRow []parquet.Value
 func BenchmarkColumnRowIterator_NextRow(b *testing.B) {
 	filename := tf.New(b, tf.RandomNested(100_000, 10))
 	file := tf.Open(b, filename)
-	cols := LeafColumns(file.Root())
+	cols := LeafColumns(file)
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {

@@ -52,7 +52,7 @@ func NewRowStatCalculator(file *parquet.File, options RowStatOptions) (*RowStatC
 		col *parquet.Column
 	}
 
-	all := LeafColumns(file.Root())
+	all := LeafColumns(file)
 	var columns []indexedColumn
 
 	if len(options.SelectedCols) == 0 {
