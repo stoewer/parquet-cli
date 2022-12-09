@@ -13,9 +13,21 @@ import (
 
 func TestColumnRowIterator_NextRow(t *testing.T) {
 	data := []tf.Nested{
-		{ColA: 1, ColB: []tf.Inner{{InnerA: "a", Map: []tf.InnerMap{{Key: "aa", Val: ptr(11)}, {Key: "bb"}}}, {InnerA: "b", Map: []tf.InnerMap{{Key: "cc", Val: ptr(33)}}}}},
-		{ColA: 2, ColB: []tf.Inner{{InnerA: "c"}}},
-		{ColA: 3, ColB: []tf.Inner{{InnerA: "d", Map: []tf.InnerMap{{Key: "dd", Val: ptr(44)}}}, {InnerA: "e", Map: []tf.InnerMap{{Key: "ee"}, {Key: "ff", Val: ptr(66)}}}}},
+		{
+			ColA: 1,
+			ColB: []tf.Inner{{InnerA: "a", Map: []tf.InnerMap{{Key: "aa", Val: ptr(11)}, {Key: "bb"}}}, {InnerA: "b", Map: []tf.InnerMap{{Key: "cc", Val: ptr(33)}}}},
+			ColC: "aaa",
+		},
+		{
+			ColA: 2,
+			ColB: []tf.Inner{{InnerA: "c"}},
+			ColC: "bbb",
+		},
+		{
+			ColA: 3,
+			ColB: []tf.Inner{{InnerA: "d", Map: []tf.InnerMap{{Key: "dd", Val: ptr(44)}}}, {InnerA: "e", Map: []tf.InnerMap{{Key: "ee"}, {Key: "ff", Val: ptr(66)}}}},
+			ColC: "ccc",
+		},
 	}
 
 	tests := []struct {
