@@ -1,0 +1,30 @@
+name: Lint and Test
+
+on: pull_request
+
+jobs:
+  lint-and-test:
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set-up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ^1.19
+          cache: true
+
+      - name: Lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: v1.50.1
+          args: --config ./golangci.yml
+
+      - name: Test
+        run: make test
+
+      - name: Build and Run
+        run: |
+          make build
+          ./parquet-cli row-stats --columns 1,2,3 --limit 2 --offset 1 ./example/nested.parquet
