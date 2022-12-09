@@ -69,7 +69,7 @@ func TestColumnRowIterator_NextRow(t *testing.T) {
 			file := tf.Open(t, filename)
 
 			columns := LeafColumns(file)
-			rows, err := newColumnRowIterator(columns[tt.columnIdx], Pagination{Limit: tt.limit, Offset: tt.offset})
+			rows, err := newColumnRowIterator(columns[tt.columnIdx], nil, Pagination{Limit: tt.limit, Offset: tt.offset})
 			require.NoError(t, err)
 
 			rowsStr := rowsToStr(t, rows)
@@ -87,7 +87,7 @@ func BenchmarkColumnRowIterator_NextRow(b *testing.B) {
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
-		rows1, _ := newColumnRowIterator(cols[1], Pagination{})
+		rows1, _ := newColumnRowIterator(cols[1], nil, Pagination{})
 		r, err := rows1.NextRow()
 		for err == nil {
 			r, err = rows1.NextRow()

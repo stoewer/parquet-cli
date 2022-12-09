@@ -11,6 +11,7 @@ type rowStats struct {
 	outputOptions
 	File    string `arg:""`
 	Columns []int  `short:"c" optional:"" help:"Restrict the output to the following columns"`
+	GroupBy *int   `short:"g" optional:"" help:"Aggregate stats grouped by the values of this column"`
 	Limit   *int64 `optional:"" help:"Limit the output to the given number of rows"`
 	Offset  int64  `optional:"" help:"Begin the output at this row offset"`
 }
@@ -23,6 +24,7 @@ func (rs *rowStats) Run() error {
 
 	options := inspect.RowStatOptions{
 		SelectedCols: rs.Columns,
+		GroupByCol:   rs.GroupBy,
 		Pagination: inspect.Pagination{
 			Limit:  rs.Limit,
 			Offset: rs.Offset,

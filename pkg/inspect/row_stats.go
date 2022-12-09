@@ -40,6 +40,7 @@ func (rs *RowStats) Cells() []interface{} {
 type RowStatOptions struct {
 	Pagination
 	SelectedCols []int
+	GroupByCol   *int
 }
 
 func NewRowStatCalculator(file *parquet.File, options RowStatOptions) (*RowStatCalculator, error) {
@@ -63,9 +64,23 @@ func NewRowStatCalculator(file *parquet.File, options RowStatOptions) (*RowStatC
 		columnIter: make([]*columnRowIterator, 0, len(columns)),
 	}
 
+	var groupByCol *parquet.Column
+	if options.GroupByCol != nil {
+		idx := *options.GroupByCol
+		if idx >= len(columns) {
+			return nil, errors.Errorf("group by column index expectd be below %d but was %d", idx, len(all))
+		}
+		groupByCol = columns[idx]
+		it, err := newColumnRowIterator(groupByCol, groupByCol, options.Pagination)
+		if err != nil {
+			return nil, errors.Wrapf(err, "unable to create row stats calculator")
+		}
+		c.groupByIter = it
+	}
+
 	c.header = append(c.header, "Row")
 	for _, col := range columns {
-		it, err := newColumnRowIterator(col, options.Pagination)
+		it, err := newColumnRowIterator(col, groupByCol, options.Pagination)
 		if err != nil {
 			return nil, errors.Wrapf(err, "unable to create row stats calculator")
 		}
@@ -77,9 +92,10 @@ func NewRowStatCalculator(file *parquet.File, options RowStatOptions) (*RowStatC
 }
 
 type RowStatCalculator struct {
-	header     []interface{}
-	columnIter []*columnRowIterator
-	rowNumber  int
+	header      []interface{}
+	columnIter  []*columnRowIterator
+	groupByIter *columnRowIterator
+	rowNumber   int
 }
 
 func (c *RowStatCalculator) Header() []interface{} {
@@ -97,7 +113,7 @@ func (c *RowStatCalculator) NextRow() (output.TableRow, error) {
 		if err != nil {
 			return nil, err
 		}
-		cs := CellStats{Column: it.ColumnName()}
+		cs := CellStats{Column: it.Column().Name()}
 		for _, val := range values {
 			if val.IsNull() {
 				cs.Nulls++

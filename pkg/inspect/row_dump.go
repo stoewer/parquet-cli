@@ -70,7 +70,7 @@ func NewRowDump(file *parquet.File, options RowStatOptions) (*RowDump, error) {
 
 	c.header = append(c.header, "Row")
 	for _, col := range columns {
-		it, err := newColumnRowIterator(col, options.Pagination)
+		it, err := newColumnRowIterator(col, nil, options.Pagination)
 		if err != nil {
 			return nil, errors.Wrapf(err, "unable to create row stats calculator")
 		}
