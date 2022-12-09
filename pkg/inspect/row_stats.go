@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	cellFields = [3]string{"size", "values", "nulls"}
+	cellFields = [...]string{"size", "values", "nulls"}
 )
 
 type CellStats struct {
@@ -47,26 +47,18 @@ type RowStatOptions struct {
 }
 
 func NewRowStatCalculator(file *parquet.File, options RowStatOptions) (*RowStatCalculator, error) {
-	type indexedColumn struct {
-		idx int
-		col *parquet.Column
-	}
-
 	all := LeafColumns(file)
-	var columns []indexedColumn
+	var columns []*parquet.Column
 
 	if len(options.SelectedCols) == 0 {
-		columns = make([]indexedColumn, 0, len(all))
-		for idx, col := range all {
-			columns = append(columns, indexedColumn{idx: idx, col: col})
-		}
+		columns = all
 	} else {
-		columns = make([]indexedColumn, 0, len(options.SelectedCols))
+		columns = make([]*parquet.Column, 0, len(options.SelectedCols))
 		for _, idx := range options.SelectedCols {
 			if idx >= len(all) {
 				return nil, errors.Errorf("column index expectd be below %d but was %d", idx, len(all))
 			}
-			columns = append(columns, indexedColumn{idx: idx, col: all[idx]})
+			columns = append(columns, all[idx])
 		}
 	}
 
@@ -76,13 +68,13 @@ func NewRowStatCalculator(file *parquet.File, options RowStatOptions) (*RowStatC
 	}
 
 	c.header = append(c.header, "Row")
-	for _, ic := range columns {
-		it, err := newColumnRowIterator(ic.col, options.Pagination)
+	for _, col := range columns {
+		it, err := newColumnRowIterator(col, options.Pagination)
 		if err != nil {
 			return nil, errors.Wrapf(err, "unable to create row stats calculator")
 		}
 		c.columnIter = append(c.columnIter, it)
-		c.header = append(c.header, fmt.Sprintf("%d/%s: %s", ic.idx, ic.col.Name(), cellFields[0]), cellFields[1], cellFields[2])
+		c.header = append(c.header, fmt.Sprintf("%d/%s: %s", col.Index(), col.Name(), cellFields[0]), cellFields[1], cellFields[2])
 	}
 
 	return &c, nil
