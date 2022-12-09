@@ -31,6 +31,7 @@ type Flat struct {
 type Nested struct {
 	ColA int `parquet:",snappy"`
 	ColB []Inner
+	ColC string `parquet:",snappy"`
 }
 
 type Inner struct {
@@ -91,7 +92,7 @@ func Open(t testing.TB, name string) *parquet.File {
 func RandomNested(rows, levels int) []Nested {
 	var data []Nested
 	for i := 0; i < rows; i++ {
-		row := Nested{ColA: randomInt()}
+		row := Nested{ColA: randomInt(), ColC: randomStr()}
 		for j := 0; j < levels; j++ {
 			inner := Inner{InnerA: randomStr()}
 			row.ColB = append(row.ColB, inner)
