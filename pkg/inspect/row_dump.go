@@ -1,6 +1,8 @@
 package inspect
 
 import (
+	"fmt"
+
 	"github.com/pkg/errors"
 	"github.com/segmentio/parquet-go"
 	"github.com/stoewer/parquet-cli/pkg/output"
@@ -27,7 +29,11 @@ func (d *DumpLine) Cells() []interface{} {
 		if v == nil {
 			cells = append(cells, "")
 		} else {
-			cells = append(cells, v)
+			if v.IsNull() {
+				cells = append(cells, fmt.Sprintf("%v %d:%d", v, v.DefinitionLevel(), v.RepetitionLevel()))
+			} else {
+				cells = append(cells, fmt.Sprintf("'%v' %d:%d", v, v.DefinitionLevel(), v.RepetitionLevel()))
+			}
 		}
 	}
 	return cells
@@ -69,7 +75,7 @@ func NewRowDump(file *parquet.File, options RowStatOptions) (*RowDump, error) {
 			return nil, errors.Wrapf(err, "unable to create row stats calculator")
 		}
 		c.columnIter = append(c.columnIter, it)
-		c.header = append(c.header, col.Name())
+		c.header = append(c.header, col.Name()+" d:r")
 	}
 
 	return &c, nil
