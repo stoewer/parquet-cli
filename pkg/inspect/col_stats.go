@@ -44,10 +44,6 @@ type ColumnStats struct {
 	cells []interface{}
 }
 
-func (rs *ColumnStats) Row() int {
-	return rs.Index
-}
-
 func (rs *ColumnStats) Data() interface{} {
 	return rs
 }

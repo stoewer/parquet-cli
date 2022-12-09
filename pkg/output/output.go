@@ -22,8 +22,10 @@ const (
 
 func (f *Format) Validate() error {
 	switch *f {
-	case FormatJSON, FormatCSV, FormatTab:
+	case FormatJSON, FormatTab:
 		return nil
+	case FormatCSV:
+		return errors.New("output format CSV is supported yet :-(")
 	default:
 		return errors.New("output format is expected to be 'json', 'tab', or 'csv'")
 	}
@@ -39,8 +41,6 @@ type Table interface {
 
 // A TableRow represents all data that belongs to a table row.
 type TableRow interface {
-	// Row returns the number of this table row.
-	Row() int
 	// Cells returns all table cells for this row. This is used to
 	// print tabular formats such csv. The returned slice has the same
 	// length as the header slice returned by the parent Table.
