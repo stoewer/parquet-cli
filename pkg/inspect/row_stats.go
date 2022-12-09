@@ -24,10 +24,6 @@ type RowStats struct {
 	Stats     []CellStats
 }
 
-func (rs *RowStats) Row() int {
-	return rs.RowNumber
-}
-
 func (rs *RowStats) Data() interface{} {
 	return rs.Stats
 }

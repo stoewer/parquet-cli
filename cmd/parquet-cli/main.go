@@ -9,6 +9,7 @@ var cli struct {
 	Schema   schema   `cmd:"" help:"Print the files schema"`
 	ColStats colStats `cmd:"" help:"Show column numbers and statistics from a file"`
 	RowStats rowStats `cmd:"" help:"Show statistics about each row in a file"`
+	Dump     dump     `cmd:"" help:"Print the content of the file"`
 }
 
 type outputOptions struct {
