@@ -1,21 +1,31 @@
 package inspect
 
-import "github.com/segmentio/parquet-go"
+import (
+	"sort"
+
+	"github.com/segmentio/parquet-go"
+)
 
 type Pagination struct {
 	Limit  *int64
 	Offset int64
 }
 
-func LeafColumns(col *parquet.Column) []*parquet.Column {
-	if col.Leaf() {
-		return []*parquet.Column{col}
+func LeafColumns(file *parquet.File) []*parquet.Column {
+	var leafs []*parquet.Column
+
+	columns := []*parquet.Column{file.Root()}
+	for len(columns) > 0 {
+		col := columns[len(columns)-1]
+		columns = columns[:len(columns)-1]
+
+		if col.Leaf() {
+			leafs = append(leafs, col)
+		} else {
+			columns = append(columns, col.Columns()...)
+		}
 	}
 
-	leafs := make([]*parquet.Column, 0, len(col.Columns()))
-	for _, child := range col.Columns() {
-		leafs = append(leafs, LeafColumns(child)...)
-	}
-
+	sort.SliceStable(leafs, func(i, j int) bool { return leafs[i].Index() < leafs[j].Index() })
 	return leafs
 }
