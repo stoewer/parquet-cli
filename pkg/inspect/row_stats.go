@@ -9,10 +9,10 @@ import (
 )
 
 var (
-	cellFields = [...]string{"size", "values", "nulls"}
+	rowCellFields = [...]string{"size", "values", "nulls"}
 )
 
-type CellStats struct {
+type RowCellStats struct {
 	Column string `json:"col"`
 	Size   int    `json:"size"`
 	Values int    `json:"values"`
@@ -21,7 +21,7 @@ type CellStats struct {
 
 type RowStats struct {
 	RowNumber int
-	Stats     []CellStats
+	Stats     []RowCellStats
 }
 
 func (rs *RowStats) Data() interface{} {
@@ -29,7 +29,7 @@ func (rs *RowStats) Data() interface{} {
 }
 
 func (rs *RowStats) Cells() []interface{} {
-	cells := make([]interface{}, 0, len(rs.Stats)*len(cellFields)+1)
+	cells := make([]interface{}, 0, len(rs.Stats)*len(rowCellFields)+1)
 	cells = append(cells, rs.RowNumber)
 	for _, c := range rs.Stats {
 		cells = append(cells, c.Size, c.Values, c.Nulls)
@@ -39,18 +39,18 @@ func (rs *RowStats) Cells() []interface{} {
 
 type RowStatOptions struct {
 	Pagination
-	SelectedCols []int
+	Columns []int
 }
 
 func NewRowStatCalculator(file *parquet.File, options RowStatOptions) (*RowStatCalculator, error) {
 	all := LeafColumns(file)
 	var columns []*parquet.Column
 
-	if len(options.SelectedCols) == 0 {
+	if len(options.Columns) == 0 {
 		columns = all
 	} else {
-		columns = make([]*parquet.Column, 0, len(options.SelectedCols))
-		for _, idx := range options.SelectedCols {
+		columns = make([]*parquet.Column, 0, len(options.Columns))
+		for _, idx := range options.Columns {
 			if idx >= len(all) {
 				return nil, errors.Errorf("column index expectd be below %d but was %d", idx, len(all))
 			}
@@ -59,18 +59,18 @@ func NewRowStatCalculator(file *parquet.File, options RowStatOptions) (*RowStatC
 	}
 
 	c := RowStatCalculator{
-		header:     make([]interface{}, 0, len(columns)*len(cellFields)+1),
+		header:     make([]interface{}, 0, len(columns)*len(rowCellFields)+1),
 		columnIter: make([]*columnRowIterator, 0, len(columns)),
 	}
 
 	c.header = append(c.header, "Row")
 	for _, col := range columns {
-		it, err := newColumnRowIterator(col, options.Pagination)
+		it, err := newColumnRowIterator(col, nil, options.Pagination)
 		if err != nil {
 			return nil, errors.Wrapf(err, "unable to create row stats calculator")
 		}
 		c.columnIter = append(c.columnIter, it)
-		c.header = append(c.header, fmt.Sprintf("%d/%s: %s", col.Index(), col.Name(), cellFields[0]), cellFields[1], cellFields[2])
+		c.header = append(c.header, fmt.Sprintf("%d/%s: %s", col.Index(), col.Name(), rowCellFields[0]), rowCellFields[1], rowCellFields[2])
 	}
 
 	return &c, nil
@@ -89,7 +89,7 @@ func (c *RowStatCalculator) Header() []interface{} {
 func (c *RowStatCalculator) NextRow() (output.TableRow, error) {
 	rs := RowStats{
 		RowNumber: c.rowNumber,
-		Stats:     make([]CellStats, 0, len(c.columnIter)),
+		Stats:     make([]RowCellStats, 0, len(c.columnIter)),
 	}
 
 	for _, it := range c.columnIter {
@@ -97,7 +97,7 @@ func (c *RowStatCalculator) NextRow() (output.TableRow, error) {
 		if err != nil {
 			return nil, err
 		}
-		cs := CellStats{Column: it.ColumnName()}
+		cs := RowCellStats{Column: it.Column().Name()}
 		for _, val := range values {
 			if val.IsNull() {
 				cs.Nulls++

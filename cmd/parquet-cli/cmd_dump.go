@@ -27,7 +27,7 @@ func (d *dump) Run() error {
 	}
 
 	options := inspect.RowStatOptions{
-		SelectedCols: d.Columns,
+		Columns: d.Columns,
 		Pagination: inspect.Pagination{
 			Limit:  d.Limit,
 			Offset: d.Offset,
