@@ -22,7 +22,7 @@ func (rs *rowStats) Run() error {
 	}
 
 	options := inspect.RowStatOptions{
-		SelectedCols: rs.Columns,
+		Columns: rs.Columns,
 		Pagination: inspect.Pagination{
 			Limit:  rs.Limit,
 			Offset: rs.Offset,

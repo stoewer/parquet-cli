@@ -13,11 +13,12 @@ var (
 )
 
 var cli struct {
-	Version  version  `cmd:"" help:"Print the parquet-cli version"`
-	Schema   schema   `cmd:"" help:"Print the files schema"`
-	ColStats colStats `cmd:"" help:"Show column numbers and statistics from a file"`
-	RowStats rowStats `cmd:"" help:"Show statistics about each row in a file"`
-	Dump     dump     `cmd:"" help:"Print the content of the file"`
+	Version   version   `cmd:"" help:"Print the parquet-cli version"`
+	Schema    schema    `cmd:"" help:"Print the files schema"`
+	ColStats  colStats  `cmd:"" help:"Show column numbers and statistics from a file"`
+	RowStats  rowStats  `cmd:"" help:"Show statistics about each row in a file"`
+	Aggregate aggregate `cmd:"" help:"Show aggregate statistics grouped by values in another column"`
+	Dump      dump      `cmd:"" help:"Print the content of the file"`
 }
 
 type outputOptions struct {

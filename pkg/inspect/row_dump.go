@@ -48,11 +48,11 @@ func NewRowDump(file *parquet.File, options RowStatOptions) (*RowDump, error) {
 	all := LeafColumns(file)
 	var columns []*parquet.Column
 
-	if len(options.SelectedCols) == 0 {
+	if len(options.Columns) == 0 {
 		columns = all
 	} else {
-		columns = make([]*parquet.Column, 0, len(options.SelectedCols))
-		for _, idx := range options.SelectedCols {
+		columns = make([]*parquet.Column, 0, len(options.Columns))
+		for _, idx := range options.Columns {
 			if idx >= len(all) {
 				return nil, errors.Errorf("column index expectd be below %d but was %d", idx, len(all))
 			}
@@ -70,7 +70,7 @@ func NewRowDump(file *parquet.File, options RowStatOptions) (*RowDump, error) {
 
 	c.header = append(c.header, "Row")
 	for _, col := range columns {
-		it, err := newColumnRowIterator(col, options.Pagination)
+		it, err := newColumnRowIterator(col, nil, options.Pagination)
 		if err != nil {
 			return nil, errors.Wrapf(err, "unable to create row stats calculator")
 		}

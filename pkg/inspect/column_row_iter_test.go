@@ -11,53 +11,72 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestColumnRowIterator_NextRow(t *testing.T) {
-	data := []tf.Nested{
-		{
-			ColA: 1,
-			ColB: []tf.Inner{{InnerA: "a", Map: []tf.InnerMap{{Key: "aa", Val: ptr(11)}, {Key: "bb"}}}, {InnerA: "b", Map: []tf.InnerMap{{Key: "cc", Val: ptr(33)}}}},
-			ColC: "aaa",
+var testDataNested = []tf.Nested{
+	{
+		ColA: 1,
+		ColB: []tf.Inner{
+			{InnerA: "a", Map: []tf.InnerMap{{Key: "aa", Val: ptr(11)}, {Key: "bb"}}},
+			{InnerA: "b", Map: []tf.InnerMap{{Key: "cc", Val: ptr(33)}}},
 		},
-		{
-			ColA: 2,
-			ColB: []tf.Inner{{InnerA: "c"}},
-			ColC: "bbb",
+		ColC: "aaa",
+	},
+	{
+		ColA: 2,
+		ColB: []tf.Inner{
+			{InnerA: "c"},
 		},
-		{
-			ColA: 3,
-			ColB: []tf.Inner{{InnerA: "d", Map: []tf.InnerMap{{Key: "dd", Val: ptr(44)}}}, {InnerA: "e", Map: []tf.InnerMap{{Key: "ee"}, {Key: "ff", Val: ptr(66)}}}},
-			ColC: "ccc",
+		ColC: "bbb",
+	},
+	{
+		ColA: 3,
+		ColB: []tf.Inner{
+			{InnerA: "d", Map: []tf.InnerMap{{Key: "dd", Val: ptr(44)}}},
+			{InnerA: "e", Map: []tf.InnerMap{{Key: "ee"}, {Key: "ff", Val: ptr(66)}}},
 		},
-	}
+		ColC: "ccc",
+	},
+}
 
+func TestColumnRowIterator_NextRow(t *testing.T) {
 	tests := []struct {
-		columnIdx int
-		limit     *int64
-		offset    int64
-		expected  [][]string
+		column   int
+		groupBy  *int
+		limit    *int64
+		offset   int64
+		expected [][]string
 	}{
 		{
-			columnIdx: 1,
-			expected:  [][]string{{"a", "b"}, {"c"}, {"d", "e"}},
+			column:   1,
+			expected: [][]string{{"a", "b"}, {"c"}, {"d", "e"}},
 		},
 		{
-			columnIdx: 2,
-			expected:  [][]string{{"aa", "bb", "cc"}, {""}, {"dd", "ee", "ff"}},
+			column:   2,
+			expected: [][]string{{"aa", "bb", "cc"}, {""}, {"dd", "ee", "ff"}},
 		},
 		{
-			columnIdx: 2,
-			offset:    1,
-			expected:  [][]string{{""}, {"dd", "ee", "ff"}},
+			column:   2,
+			offset:   1,
+			expected: [][]string{{""}, {"dd", "ee", "ff"}},
 		},
 		{
-			columnIdx: 1,
-			offset:    1,
-			limit:     ptr(int64(1)),
-			expected:  [][]string{{"c"}},
+			column:   1,
+			offset:   1,
+			limit:    ptr(int64(1)),
+			expected: [][]string{{"c"}},
+		},
+		{
+			column:   2,
+			groupBy:  ptr(1),
+			expected: [][]string{{"aa", "bb"}, {"cc"}, {""}, {"dd"}, {"ee", "ff"}},
+		},
+		{
+			column:   1,
+			groupBy:  ptr(1),
+			expected: [][]string{{"a"}, {"b"}, {"c"}, {"d"}, {"e"}},
 		},
 	}
 
-	filename := tf.New(t, data)
+	filename := tf.New(t, testDataNested)
 
 	for _, tt := range tests {
 		var l int64
@@ -65,11 +84,16 @@ func TestColumnRowIterator_NextRow(t *testing.T) {
 			l = *tt.limit
 		}
 
-		t.Run(fmt.Sprintf("col %d limit %d offset %d", tt.columnIdx, l, tt.offset), func(t *testing.T) {
+		t.Run(fmt.Sprintf("col %d limit %d offset %d", tt.column, l, tt.offset), func(t *testing.T) {
 			file := tf.Open(t, filename)
-
 			columns := LeafColumns(file)
-			rows, err := newColumnRowIterator(columns[tt.columnIdx], Pagination{Limit: tt.limit, Offset: tt.offset})
+
+			var groupByColumn *parquet.Column
+			if tt.groupBy != nil {
+				groupByColumn = columns[*tt.groupBy]
+			}
+
+			rows, err := newColumnRowIterator(columns[tt.column], groupByColumn, Pagination{Limit: tt.limit, Offset: tt.offset})
 			require.NoError(t, err)
 
 			rowsStr := rowsToStr(t, rows)
@@ -87,7 +111,7 @@ func BenchmarkColumnRowIterator_NextRow(b *testing.B) {
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
-		rows1, _ := newColumnRowIterator(cols[1], Pagination{})
+		rows1, _ := newColumnRowIterator(cols[1], nil, Pagination{})
 		r, err := rows1.NextRow()
 		for err == nil {
 			r, err = rows1.NextRow()

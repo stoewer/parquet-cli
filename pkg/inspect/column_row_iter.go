@@ -7,14 +7,15 @@ import (
 	"github.com/segmentio/parquet-go"
 )
 
-func newColumnRowIterator(column *parquet.Column, pagination Pagination) (*columnRowIterator, error) {
+func newColumnRowIterator(column, groupByColumn *parquet.Column, pagination Pagination) (*columnRowIterator, error) {
 	it := columnRowIterator{
-		column:       column,
-		pages:        column.Pages(),
-		readBuffer:   make([]parquet.Value, 1000),
-		resultBuffer: make([]parquet.Value, 1000),
-		rowOffset:    pagination.Offset,
-		rowLimit:     pagination.Limit,
+		column:        column,
+		groupByColumn: groupByColumn,
+		pages:         column.Pages(),
+		readBuffer:    make([]parquet.Value, 1000),
+		resultBuffer:  make([]parquet.Value, 1000),
+		rowOffset:     pagination.Offset,
+		rowLimit:      pagination.Limit,
 	}
 	err := it.forwardToOffset()
 	if err != nil {
@@ -25,19 +26,20 @@ func newColumnRowIterator(column *parquet.Column, pagination Pagination) (*colum
 }
 
 type columnRowIterator struct {
-	column       *parquet.Column
-	pages        parquet.Pages
-	values       parquet.ValueReader
-	readBuffer   []parquet.Value
-	resultBuffer []parquet.Value
-	unread       []parquet.Value
-	currentRow   int64
-	rowOffset    int64
-	rowLimit     *int64
+	column        *parquet.Column
+	groupByColumn *parquet.Column
+	pages         parquet.Pages
+	values        parquet.ValueReader
+	readBuffer    []parquet.Value
+	resultBuffer  []parquet.Value
+	unread        []parquet.Value
+	currentRow    int64
+	rowOffset     int64
+	rowLimit      *int64
 }
 
-func (r *columnRowIterator) ColumnName() string {
-	return r.column.Name()
+func (r *columnRowIterator) Column() *parquet.Column {
+	return r.column
 }
 
 func (r *columnRowIterator) NextRow() ([]parquet.Value, error) {
@@ -48,7 +50,7 @@ func (r *columnRowIterator) NextRow() ([]parquet.Value, error) {
 			if r.rowLimit != nil && r.currentRow >= *r.rowLimit+r.rowOffset {
 				return nil, errors.Wrapf(io.EOF, "stop iteration: row limit reached")
 			}
-			if isNewRow(&v) && len(result) > 0 {
+			if r.isNewRow(&v) && len(result) > 0 {
 				r.unread = r.unread[i:]
 				r.currentRow++
 				return result, nil
@@ -102,7 +104,7 @@ func (r *columnRowIterator) forwardToOffset() error {
 
 	for {
 		for i, v := range r.unread {
-			if isNewRow(&v) && i > 0 {
+			if r.isNewRow(&v) && i > 0 {
 				r.currentRow++
 			}
 			if r.currentRow >= r.rowOffset {
@@ -124,6 +126,17 @@ func (r *columnRowIterator) forwardToOffset() error {
 	}
 }
 
-func isNewRow(v *parquet.Value) bool {
-	return v.RepetitionLevel() == 0
+func (r *columnRowIterator) isNewRow(v *parquet.Value) bool {
+	if r.groupByColumn == nil {
+		// no group by column: each now row is a new group
+		return v.RepetitionLevel() == 0
+	}
+	if r.column.Index() == r.groupByColumn.Index() {
+		// column equals group by column: each new value is a new group
+		return true
+	}
+
+	// a value belongs to new group when it repeats at the same level or
+	// lower as the definition value of the group by column
+	return v.RepetitionLevel() <= r.groupByColumn.MaxDefinitionLevel()
 }
