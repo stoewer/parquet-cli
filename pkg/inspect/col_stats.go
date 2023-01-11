@@ -12,6 +12,8 @@ var (
 	columnStatHeader = [...]interface{}{
 		"Index",
 		"Name",
+		"Max Def",
+		"Max Rep",
 		"Size",
 		"Pages",
 		"Rows",
@@ -29,6 +31,8 @@ var (
 type ColumnStats struct {
 	Index         int    `json:"index"`
 	Name          string `json:"name"`
+	MaxDef        int    `json:"maxDef"`
+	MaxRep        int    `json:"maxRep"`
 	Size          int64  `json:"size"`
 	Pages         int    `json:"pages"`
 	Rows          int64  `json:"rows"`
@@ -53,6 +57,8 @@ func (rs *ColumnStats) Cells() []interface{} {
 		rs.cells = []interface{}{
 			rs.Index,
 			rs.Name,
+			rs.MaxDef,
+			rs.MaxRep,
 			rs.Size,
 			rs.Pages,
 			rs.Rows,
@@ -104,10 +110,14 @@ func (cc *ColStatCalculator) NextRow() (output.TableRow, error) {
 
 	col := cc.columns[cc.current]
 	cc.current++
+	stats := ColumnStats{
+		Index:  col.Index(),
+		Name:   col.Name(),
+		MaxDef: col.MaxDefinitionLevel(),
+		MaxRep: col.MaxRepetitionLevel(),
+	}
 
-	stats := ColumnStats{Index: col.Index(), Name: col.Name()}
 	pages := col.Pages()
-
 	page, err := pages.ReadPage()
 	for err == nil {
 		stats.Pages++
