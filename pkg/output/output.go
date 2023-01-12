@@ -2,6 +2,7 @@ package output
 
 import (
 	"bytes"
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -22,10 +23,8 @@ const (
 
 func (f *Format) Validate() error {
 	switch *f {
-	case FormatJSON, FormatTab:
+	case FormatJSON, FormatTab, FormatCSV:
 		return nil
-	case FormatCSV:
-		return errors.New("output format CSV is supported yet :-(")
 	default:
 		return errors.New("output format is expected to be 'json', 'tab', or 'csv'")
 	}
@@ -50,19 +49,21 @@ type TableRow interface {
 	Data() interface{}
 }
 
-// Print writes the Table data to w using the provided format.
-func Print(w io.Writer, f Format, data Table) error {
+// PrintTable writes the Table data to w using the provided format.
+func PrintTable(w io.Writer, f Format, data Table) error {
 	switch f {
 	case FormatJSON:
 		return printJSON(w, data)
 	case FormatTab:
-		return printTable(w, data)
+		return printTab(w, data)
+	case FormatCSV:
+		return printCSV(w, data)
 	default:
 		return errors.Errorf("format not supported yet '%s'", f)
 	}
 }
 
-func printTable(w io.Writer, data Table) error {
+func printTab(w io.Writer, data Table) error {
 	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
 
 	formatBuilder := strings.Builder{}
@@ -101,11 +102,45 @@ func printTable(w io.Writer, data Table) error {
 	return tw.Flush()
 }
 
+func printCSV(w io.Writer, data Table) error {
+	cw := csv.NewWriter(w)
+	cw.Comma = ';'
+
+	header := data.Header()
+	lineBuffer := make([]string, len(header))
+
+	line := toStringSlice(header, lineBuffer)
+	err := cw.Write(line)
+	if err != nil {
+		return err
+	}
+
+	row, err := data.NextRow()
+	for err == nil {
+		line = toStringSlice(row.Cells(), lineBuffer)
+		err = cw.Write(line)
+		if err != nil {
+			return err
+		}
+
+		row, err = data.NextRow()
+	}
+	if err != nil && !errors.Is(err, io.EOF) {
+		return err
+	}
+
+	cw.Flush()
+	return cw.Error()
+}
+
 func printJSON(w io.Writer, data Table) error {
-	fmt.Println("[")
+	_, err := fmt.Fprintln(w, "[")
+	if err != nil {
+		return err
+	}
 
 	var count int
-	buf := bytes.NewBuffer(make([]byte, 1024))
+	buf := bytes.NewBuffer(make([]byte, 10240))
 	row, err := data.NextRow()
 
 	for err == nil {
@@ -137,6 +172,27 @@ func printJSON(w io.Writer, data Table) error {
 		return err
 	}
 
-	fmt.Println("\n]")
-	return nil
+	_, err = fmt.Println("\n]")
+	return err
+}
+
+func toStringSlice(in []interface{}, buf []string) []string {
+	for i, v := range in {
+		var s string
+		switch v := v.(type) {
+		case string:
+			s = v
+		case fmt.Stringer:
+			s = v.String()
+		default:
+			s = fmt.Sprint(v)
+		}
+
+		if i < len(buf) {
+			buf[i] = s
+		} else {
+			buf = append(buf, s)
+		}
+	}
+	return buf[0:len(in)]
 }

@@ -34,7 +34,7 @@ func (s *schema) Run() error {
 
 	}
 
-	return output.Print(os.Stdout, s.Output, newMetadataTable(metadata))
+	return output.PrintTable(os.Stdout, s.Output, newMetadataTable(metadata))
 }
 
 // borrowed with love from github.com/segmentio/parquet-go/file.go:OpenFile()

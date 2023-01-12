@@ -24,5 +24,5 @@ func (cs *colStats) Run() error {
 		return err
 	}
 
-	return output.Print(os.Stdout, cs.Output, rowStats)
+	return output.PrintTable(os.Stdout, cs.Output, rowStats)
 }
