@@ -22,12 +22,12 @@ type AggregateCellStats struct {
 }
 
 type Aggregate struct {
-	Value parquet.Value
-	Stats []AggregateCellStats
+	Value string               `json:"value"`
+	Stats []AggregateCellStats `json:"stats"`
 }
 
 func (rs *Aggregate) Data() interface{} {
-	return rs.Stats
+	return rs
 }
 
 func (rs *Aggregate) Cells() []interface{} {
@@ -146,8 +146,11 @@ func (c *AggregateCalculator) calculateResults(groupByColumn *parquet.Column, co
 		aggregate, ok := resultMap[groupByVal.String()]
 		if !ok {
 			aggregate = &Aggregate{
-				Value: groupByVal,
+				Value: groupByVal.String(),
 				Stats: make([]AggregateCellStats, len(columns)),
+			}
+			for i, col := range columns {
+				aggregate.Stats[i].Column = col.Name()
 			}
 			resultMap[groupByVal.String()] = aggregate
 		}
