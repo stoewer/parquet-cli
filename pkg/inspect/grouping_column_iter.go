@@ -7,25 +7,31 @@ import (
 	"github.com/segmentio/parquet-go"
 )
 
-func newColumnRowIterator(column, groupByColumn *parquet.Column, pagination Pagination) (*columnRowIterator, error) {
-	it := columnRowIterator{
+// newGroupingColumnIterator creates a new groupingColumnIterator.
+// The iterator iterates over values of a single Parquet column and returns groups of values.
+// When no groupByColumn is present, values are grouped by row. When a groupByColumn is provided,
+// values are grouped such that each value group corresponds to a single value in the groupByColumn.
+// The number of returned groups can be controlled via the pagination parameter.
+func newGroupingColumnIterator(column, groupByColumn *parquet.Column, pagination Pagination) (*groupingColumnIterator, error) {
+	it := groupingColumnIterator{
 		column:        column,
 		groupByColumn: groupByColumn,
 		pages:         column.Pages(),
 		readBuffer:    make([]parquet.Value, 1000),
 		resultBuffer:  make([]parquet.Value, 1000),
-		rowOffset:     pagination.Offset,
-		rowLimit:      pagination.Limit,
+		groupOffset:   pagination.Offset,
+		groupLimit:    pagination.Limit,
 	}
 	err := it.forwardToOffset()
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to create column row iterator")
+		return nil, errors.Wrap(err, "unable to create grouping column iterator")
 	}
 
 	return &it, err
 }
 
-type columnRowIterator struct {
+// groupingColumnIterator iterates over values of a single Parquet column. Values are returned in groups.
+type groupingColumnIterator struct {
 	column        *parquet.Column
 	groupByColumn *parquet.Column
 	pages         parquet.Pages
@@ -33,26 +39,26 @@ type columnRowIterator struct {
 	readBuffer    []parquet.Value
 	resultBuffer  []parquet.Value
 	unread        []parquet.Value
-	currentRow    int64
-	rowOffset     int64
-	rowLimit      *int64
+	currentGroup  int64
+	groupOffset   int64
+	groupLimit    *int64
 }
 
-func (r *columnRowIterator) Column() *parquet.Column {
+func (r *groupingColumnIterator) Column() *parquet.Column {
 	return r.column
 }
 
-func (r *columnRowIterator) NextRow() ([]parquet.Value, error) {
+func (r *groupingColumnIterator) NextGroup() ([]parquet.Value, error) {
 	result := r.resultBuffer[:0]
 
 	for {
 		for i, v := range r.unread {
-			if r.rowLimit != nil && r.currentRow >= *r.rowLimit+r.rowOffset {
-				return nil, errors.Wrapf(io.EOF, "stop iteration: row limit reached")
+			if r.groupLimit != nil && r.currentGroup >= *r.groupLimit+r.groupOffset {
+				return nil, errors.Wrapf(io.EOF, "stop iteration: group limit reached")
 			}
-			if r.isNewRow(&v) && len(result) > 0 {
+			if r.isNewGroup(&v) && len(result) > 0 {
 				r.unread = r.unread[i:]
-				r.currentRow++
+				r.currentGroup++
 				return result, nil
 			}
 			result = append(result, v)
@@ -84,7 +90,7 @@ func (r *columnRowIterator) NextRow() ([]parquet.Value, error) {
 	}
 }
 
-func (r *columnRowIterator) forwardToOffset() error {
+func (r *groupingColumnIterator) forwardToOffset() error {
 	for {
 		page, err := r.pages.ReadPage()
 		if err != nil {
@@ -94,20 +100,20 @@ func (r *columnRowIterator) forwardToOffset() error {
 			return err
 		}
 
-		if r.currentRow+page.NumRows() >= r.rowOffset {
+		if r.currentGroup+page.NumRows() >= r.groupOffset {
 			r.values = page.Values()
 			break
 		}
 
-		r.currentRow += page.NumRows()
+		r.currentGroup += page.NumRows()
 	}
 
 	for {
 		for i, v := range r.unread {
-			if r.isNewRow(&v) && i > 0 {
-				r.currentRow++
+			if r.isNewGroup(&v) && i > 0 {
+				r.currentGroup++
 			}
-			if r.currentRow >= r.rowOffset {
+			if r.currentGroup >= r.groupOffset {
 				r.unread = r.unread[i:]
 				return nil
 			}
@@ -126,7 +132,7 @@ func (r *columnRowIterator) forwardToOffset() error {
 	}
 }
 
-func (r *columnRowIterator) isNewRow(v *parquet.Value) bool {
+func (r *groupingColumnIterator) isNewGroup(v *parquet.Value) bool {
 	if r.groupByColumn == nil {
 		// no group by column: each now row is a new group
 		return v.RepetitionLevel() == 0
