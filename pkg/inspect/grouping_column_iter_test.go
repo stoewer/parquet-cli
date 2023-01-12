@@ -1,7 +1,6 @@
 package inspect
 
 import (
-	"fmt"
 	"io"
 	"testing"
 
@@ -39,6 +38,7 @@ var testDataNested = []tf.Nested{
 
 func TestGroupingColumnIterator_NextGroup(t *testing.T) {
 	tests := []struct {
+		name     string
 		column   int
 		groupBy  *int
 		limit    *int64
@@ -46,30 +46,36 @@ func TestGroupingColumnIterator_NextGroup(t *testing.T) {
 		expected [][]string
 	}{
 		{
+			name:     "column 1",
 			column:   1,
 			expected: [][]string{{"a", "b"}, {"c"}, {"d", "e"}},
 		},
 		{
+			name:     "column 2",
 			column:   2,
 			expected: [][]string{{"aa", "bb", "cc"}, {""}, {"dd", "ee", "ff"}},
 		},
 		{
+			name:     "column 2 offset 1",
 			column:   2,
 			offset:   1,
 			expected: [][]string{{""}, {"dd", "ee", "ff"}},
 		},
 		{
+			name:     "column 2 limit 1 offset 1",
 			column:   1,
 			offset:   1,
 			limit:    ptr(int64(1)),
 			expected: [][]string{{"c"}},
 		},
 		{
+			name:     "column 2 group by 1",
 			column:   2,
 			groupBy:  ptr(1),
 			expected: [][]string{{"aa", "bb"}, {"cc"}, {""}, {"dd"}, {"ee", "ff"}},
 		},
 		{
+			name:     "column 1 group by self",
 			column:   1,
 			groupBy:  ptr(1),
 			expected: [][]string{{"a"}, {"b"}, {"c"}, {"d"}, {"e"}},
@@ -79,12 +85,7 @@ func TestGroupingColumnIterator_NextGroup(t *testing.T) {
 	filename := tf.New(t, testDataNested)
 
 	for _, tt := range tests {
-		var l int64
-		if tt.limit != nil {
-			l = *tt.limit
-		}
-
-		t.Run(fmt.Sprintf("col %d limit %d offset %d", tt.column, l, tt.offset), func(t *testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
 			file := tf.Open(t, filename)
 			columns := LeafColumns(file)
 
@@ -102,7 +103,7 @@ func TestGroupingColumnIterator_NextGroup(t *testing.T) {
 	}
 }
 
-var globalGroup []parquet.Value
+var avoidOptimizations []parquet.Value
 
 func BenchmarkGroupingColumnIterator_NextGroup(b *testing.B) {
 	filename := tf.New(b, tf.RandomNested(100_000, 10))
@@ -116,7 +117,7 @@ func BenchmarkGroupingColumnIterator_NextGroup(b *testing.B) {
 		for err == nil {
 			r, err = rows1.NextGroup()
 		}
-		globalGroup = r
+		avoidOptimizations = r
 	}
 }
 
