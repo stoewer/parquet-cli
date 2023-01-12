@@ -39,5 +39,5 @@ func (d *dump) Run() error {
 		return err
 	}
 
-	return output.Print(os.Stdout, d.Output, rowDump)
+	return output.PrintTable(os.Stdout, d.Output, rowDump)
 }
