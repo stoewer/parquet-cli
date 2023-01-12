@@ -62,7 +62,7 @@ func NewRowDump(file *parquet.File, options RowStatOptions) (*RowDump, error) {
 
 	c := RowDump{
 		header:     make([]interface{}, 0, len(columns)+1),
-		columnIter: make([]*columnRowIterator, 0, len(columns)),
+		columnIter: make([]*groupingColumnIterator, 0, len(columns)),
 		row: rowValues{
 			values: make([][]parquet.Value, len(columns)),
 		},
@@ -70,7 +70,7 @@ func NewRowDump(file *parquet.File, options RowStatOptions) (*RowDump, error) {
 
 	c.header = append(c.header, "Row")
 	for _, col := range columns {
-		it, err := newColumnRowIterator(col, nil, options.Pagination)
+		it, err := newGroupingColumnIterator(col, nil, options.Pagination)
 		if err != nil {
 			return nil, errors.Wrapf(err, "unable to create row stats calculator")
 		}
@@ -88,7 +88,7 @@ type rowValues struct {
 
 type RowDump struct {
 	header     []interface{}
-	columnIter []*columnRowIterator
+	columnIter []*groupingColumnIterator
 	rowNumber  int
 	row        rowValues
 }
@@ -133,7 +133,7 @@ func (rd *RowDump) hasUnreadRowValues() bool {
 
 func (rd *RowDump) readRowValues() error {
 	for i, it := range rd.columnIter {
-		vals, err := it.NextRow()
+		vals, err := it.NextGroup()
 		if err != nil {
 			return err
 		}

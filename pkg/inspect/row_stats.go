@@ -60,12 +60,12 @@ func NewRowStatCalculator(file *parquet.File, options RowStatOptions) (*RowStatC
 
 	c := RowStatCalculator{
 		header:     make([]interface{}, 0, len(columns)*len(rowCellFields)+1),
-		columnIter: make([]*columnRowIterator, 0, len(columns)),
+		columnIter: make([]*groupingColumnIterator, 0, len(columns)),
 	}
 
 	c.header = append(c.header, "Row")
 	for _, col := range columns {
-		it, err := newColumnRowIterator(col, nil, options.Pagination)
+		it, err := newGroupingColumnIterator(col, nil, options.Pagination)
 		if err != nil {
 			return nil, errors.Wrapf(err, "unable to create row stats calculator")
 		}
@@ -78,7 +78,7 @@ func NewRowStatCalculator(file *parquet.File, options RowStatOptions) (*RowStatC
 
 type RowStatCalculator struct {
 	header     []interface{}
-	columnIter []*columnRowIterator
+	columnIter []*groupingColumnIterator
 	rowNumber  int
 }
 
@@ -93,7 +93,7 @@ func (c *RowStatCalculator) NextRow() (output.TableRow, error) {
 	}
 
 	for _, it := range c.columnIter {
-		values, err := it.NextRow()
+		values, err := it.NextGroup()
 		if err != nil {
 			return nil, err
 		}

@@ -37,7 +37,7 @@ var testDataNested = []tf.Nested{
 	},
 }
 
-func TestColumnRowIterator_NextRow(t *testing.T) {
+func TestGroupingColumnIterator_NextGroup(t *testing.T) {
 	tests := []struct {
 		column   int
 		groupBy  *int
@@ -93,47 +93,47 @@ func TestColumnRowIterator_NextRow(t *testing.T) {
 				groupByColumn = columns[*tt.groupBy]
 			}
 
-			rows, err := newColumnRowIterator(columns[tt.column], groupByColumn, Pagination{Limit: tt.limit, Offset: tt.offset})
+			group, err := newGroupingColumnIterator(columns[tt.column], groupByColumn, Pagination{Limit: tt.limit, Offset: tt.offset})
 			require.NoError(t, err)
 
-			rowsStr := rowsToStr(t, rows)
+			rowsStr := groupsToString(t, group)
 			assert.Equal(t, tt.expected, rowsStr)
 		})
 	}
 }
 
-var globalRow []parquet.Value
+var globalGroup []parquet.Value
 
-func BenchmarkColumnRowIterator_NextRow(b *testing.B) {
+func BenchmarkGroupingColumnIterator_NextGroup(b *testing.B) {
 	filename := tf.New(b, tf.RandomNested(100_000, 10))
 	file := tf.Open(b, filename)
 	cols := LeafColumns(file)
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
-		rows1, _ := newColumnRowIterator(cols[1], nil, Pagination{})
-		r, err := rows1.NextRow()
+		rows1, _ := newGroupingColumnIterator(cols[1], nil, Pagination{})
+		r, err := rows1.NextGroup()
 		for err == nil {
-			r, err = rows1.NextRow()
+			r, err = rows1.NextGroup()
 		}
-		globalRow = r
+		globalGroup = r
 	}
 }
 
-func rowsToStr(t *testing.T, rows *columnRowIterator) [][]string {
+func groupsToString(t *testing.T, groups *groupingColumnIterator) [][]string {
 	var result [][]string
-	row, err := rows.NextRow()
+	group, err := groups.NextGroup()
 	for err == nil {
-		var rowStr []string
-		for _, val := range row {
+		var groupStr []string
+		for _, val := range group {
 			if val.IsNull() {
-				rowStr = append(rowStr, "")
+				groupStr = append(groupStr, "")
 			} else {
-				rowStr = append(rowStr, val.String())
+				groupStr = append(groupStr, val.String())
 			}
 		}
-		result = append(result, rowStr)
-		row, err = rows.NextRow()
+		result = append(result, groupStr)
+		group, err = groups.NextGroup()
 	}
 	require.ErrorIs(t, err, io.EOF)
 	return result

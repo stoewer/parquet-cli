@@ -114,14 +114,14 @@ func (c *AggregateCalculator) NextRow() (output.TableRow, error) {
 
 func (c *AggregateCalculator) calculateResults(groupByColumn *parquet.Column, columns []*parquet.Column) error {
 	// setup column iterators
-	groupByIter, err := newColumnRowIterator(groupByColumn, groupByColumn, Pagination{})
+	groupByIter, err := newGroupingColumnIterator(groupByColumn, groupByColumn, Pagination{})
 	if err != nil {
 		return errors.Wrapf(err, "unable to create aggregate calculator")
 	}
 
-	var columnIter []*columnRowIterator
+	var columnIter []*groupingColumnIterator
 	for _, col := range columns {
-		it, err := newColumnRowIterator(col, groupByColumn, Pagination{})
+		it, err := newGroupingColumnIterator(col, groupByColumn, Pagination{})
 		if err != nil {
 			return errors.Wrapf(err, "unable to create aggregate calculator")
 		}
@@ -131,7 +131,7 @@ func (c *AggregateCalculator) calculateResults(groupByColumn *parquet.Column, co
 	// calculate aggregated result map
 	resultMap := make(map[string]*Aggregate)
 	for {
-		groupByVals, err := groupByIter.NextRow()
+		groupByVals, err := groupByIter.NextGroup()
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				break
@@ -153,7 +153,7 @@ func (c *AggregateCalculator) calculateResults(groupByColumn *parquet.Column, co
 		}
 
 		for i, it := range columnIter {
-			values, err := it.NextRow()
+			values, err := it.NextGroup()
 			if err != nil {
 				return err
 			}
