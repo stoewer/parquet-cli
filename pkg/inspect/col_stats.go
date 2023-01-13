@@ -15,6 +15,7 @@ var (
 		"Max Def",
 		"Max Rep",
 		"Size",
+		"Compressed size",
 		"Pages",
 		"Rows",
 		"Page min rows",
@@ -29,21 +30,22 @@ var (
 )
 
 type ColumnStats struct {
-	Index         int    `json:"index"`
-	Name          string `json:"name"`
-	MaxDef        int    `json:"maxDef"`
-	MaxRep        int    `json:"maxRep"`
-	Size          int64  `json:"size"`
-	Pages         int    `json:"pages"`
-	Rows          int64  `json:"rows"`
-	PageMinRows   int64  `json:"pageMinRows"`
-	PageMaxRows   int64  `json:"pageMaxRows"`
-	Values        int64  `json:"values"`
-	PageMinValues int64  `json:"pageMinValues"`
-	PageMaxValues int64  `json:"pageMaxValues"`
-	Nulls         int64  `json:"nulls"`
-	PageMinNulls  int64  `json:"pageMinNulls"`
-	PageMaxNulls  int64  `json:"pageMaxNulls"`
+	Index          int    `json:"index"`
+	Name           string `json:"name"`
+	MaxDef         int    `json:"maxDef"`
+	MaxRep         int    `json:"maxRep"`
+	Size           int64  `json:"size"`
+	CompressedSize int64  `json:"compressedSize"`
+	Pages          int    `json:"pages"`
+	Rows           int64  `json:"rows"`
+	PageMinRows    int64  `json:"pageMinRows"`
+	PageMaxRows    int64  `json:"pageMaxRows"`
+	Values         int64  `json:"values"`
+	PageMinValues  int64  `json:"pageMinValues"`
+	PageMaxValues  int64  `json:"pageMaxValues"`
+	Nulls          int64  `json:"nulls"`
+	PageMinNulls   int64  `json:"pageMinNulls"`
+	PageMaxNulls   int64  `json:"pageMaxNulls"`
 
 	cells []interface{}
 }
@@ -60,6 +62,7 @@ func (rs *ColumnStats) Cells() []interface{} {
 			rs.MaxDef,
 			rs.MaxRep,
 			rs.Size,
+			rs.CompressedSize,
 			rs.Pages,
 			rs.Rows,
 			rs.PageMinRows,
@@ -91,10 +94,11 @@ func NewColStatCalculator(file *parquet.File, selectedCols []int) (*ColStatCalcu
 		}
 	}
 
-	return &ColStatCalculator{columns: columns}, nil
+	return &ColStatCalculator{file: file, columns: columns}, nil
 }
 
 type ColStatCalculator struct {
+	file    *parquet.File
 	columns []*parquet.Column
 	current int
 }
@@ -117,24 +121,35 @@ func (cc *ColStatCalculator) NextRow() (output.TableRow, error) {
 		MaxRep: col.MaxRepetitionLevel(),
 	}
 
-	pages := col.Pages()
-	page, err := pages.ReadPage()
-	for err == nil {
-		stats.Pages++
-		stats.Size += page.Size()
-		stats.Rows += page.NumRows()
-		stats.PageMinRows = min(stats.PageMinRows, page.NumRows())
-		stats.PageMaxRows = max(stats.PageMaxRows, page.NumRows())
-		stats.Values += page.NumValues()
-		stats.PageMinValues = min(stats.PageMinValues, page.NumRows())
-		stats.PageMaxValues = max(stats.PageMaxValues, page.NumRows())
-		stats.Nulls += page.NumNulls()
-		stats.PageMinNulls = min(stats.PageMinNulls, page.NumNulls())
-		stats.PageMaxNulls = max(stats.PageMaxNulls, page.NumNulls())
-		page, err = pages.ReadPage()
-	}
-	if !errors.Is(err, io.EOF) {
-		return nil, errors.Wrapf(err, "unable to read page rom column '%s", col.Name())
+	for _, rg := range cc.file.RowGroups() {
+		chunk := rg.ColumnChunks()[col.Index()]
+
+		index := chunk.OffsetIndex()
+		if index != nil {
+			for i := 0; i < index.NumPages(); i++ {
+				stats.CompressedSize += index.CompressedPageSize(i)
+			}
+		}
+
+		pages := chunk.Pages()
+		page, err := pages.ReadPage()
+		for err == nil {
+			stats.Pages++
+			stats.Size += page.Size()
+			stats.Rows += page.NumRows()
+			stats.PageMinRows = min(stats.PageMinRows, page.NumRows())
+			stats.PageMaxRows = max(stats.PageMaxRows, page.NumRows())
+			stats.Values += page.NumValues()
+			stats.PageMinValues = min(stats.PageMinValues, page.NumRows())
+			stats.PageMaxValues = max(stats.PageMaxValues, page.NumRows())
+			stats.Nulls += page.NumNulls()
+			stats.PageMinNulls = min(stats.PageMinNulls, page.NumNulls())
+			stats.PageMaxNulls = max(stats.PageMaxNulls, page.NumNulls())
+			page, err = pages.ReadPage()
+		}
+		if !errors.Is(err, io.EOF) {
+			return nil, errors.Wrapf(err, "unable to read page rom column '%s", col.Name())
+		}
 	}
 
 	return &stats, nil
