@@ -78,21 +78,13 @@ func printTab(w io.Writer, data Table) error {
 		return err
 	}
 
-	var count int
 	row, err := data.NextRow()
 	for err == nil {
 		_, err = fmt.Fprintf(tw, format, row.Cells()...)
 		if err != nil {
 			return err
 		}
-		if count > 0 && count%10 == 0 {
-			err = tw.Flush()
-			if err != nil {
-				return err
-			}
-		}
 
-		count++
 		row, err = data.NextRow()
 	}
 	if err != nil && !errors.Is(err, io.EOF) {
