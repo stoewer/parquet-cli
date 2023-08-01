@@ -3,8 +3,8 @@ package main
 import (
 	"os"
 
+	"github.com/parquet-go/parquet-go"
 	"github.com/pkg/errors"
-	"github.com/segmentio/parquet-go"
 )
 
 func openParquetFile(filename string) (*parquet.File, error) {

@@ -4,7 +4,7 @@ import (
 	"io"
 	"testing"
 
-	"github.com/segmentio/parquet-go"
+	"github.com/parquet-go/parquet-go"
 	tf "github.com/stoewer/parquet-cli/pkg/testfile"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

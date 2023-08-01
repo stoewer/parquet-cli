@@ -5,9 +5,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/parquet-go/parquet-go"
 	"github.com/stretchr/testify/require"
-
-	"github.com/segmentio/parquet-go"
 )
 
 const (

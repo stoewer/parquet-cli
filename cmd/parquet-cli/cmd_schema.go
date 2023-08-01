@@ -7,8 +7,8 @@ import (
 	"io"
 	"os"
 
+	"github.com/parquet-go/parquet-go/format"
 	"github.com/segmentio/encoding/thrift"
-	"github.com/segmentio/parquet-go/format"
 	"github.com/stoewer/parquet-cli/pkg/output"
 )
 
