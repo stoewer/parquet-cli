@@ -26,7 +26,7 @@ func (d *dump) Run() error {
 		return err
 	}
 
-	options := inspect.RowStatOptions{
+	options := inspect.RowDumpOptions{
 		Columns: d.Columns,
 		Pagination: inspect.Pagination{
 			Limit:  d.Limit,

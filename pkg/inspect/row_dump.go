@@ -41,10 +41,10 @@ func (d *DumpLine) Cells() []interface{} {
 
 type RowDumpOptions struct {
 	Pagination
-	SelectedCols []int
+	Columns []int
 }
 
-func NewRowDump(file *parquet.File, options RowStatOptions) (*RowDump, error) {
+func NewRowDump(file *parquet.File, options RowDumpOptions) (*RowDump, error) {
 	all := LeafColumns(file)
 	var columns []*parquet.Column
 
