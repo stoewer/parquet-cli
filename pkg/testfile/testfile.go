@@ -70,7 +70,7 @@ func New[T any](t testing.TB, data []T) string {
 	return name
 }
 
-func Open(t testing.TB, name string) *parquet.File {
+func Open(t testing.TB, name string) (*os.File, *parquet.File) {
 	t.Helper()
 
 	file, err := os.Open(name)
@@ -85,7 +85,7 @@ func Open(t testing.TB, name string) *parquet.File {
 	pfile, err := parquet.OpenFile(file, info.Size())
 	require.NoError(t, err)
 
-	return pfile
+	return file, pfile
 }
 
 func RandomNested(rows, levels int) []Nested {

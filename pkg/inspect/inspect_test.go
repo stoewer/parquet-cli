@@ -20,8 +20,8 @@ func TestLeafColumns(t *testing.T) {
 		}},
 	}}
 
-	file := tf.Open(t, tf.New(t, data))
-	columns := LeafColumns(file)
+	_, pfile := tf.Open(t, tf.New(t, data))
+	columns := LeafColumns(pfile)
 	require.Len(t, columns, 5)
 	assert.Equal(t, "ColA", columns[0].Name())
 	assert.Equal(t, "InnerA", columns[1].Name())

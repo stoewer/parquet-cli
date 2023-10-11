@@ -86,8 +86,8 @@ func TestGroupingColumnIterator_NextGroup(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			file := tf.Open(t, filename)
-			columns := LeafColumns(file)
+			_, pfile := tf.Open(t, filename)
+			columns := LeafColumns(pfile)
 
 			var groupByColumn *parquet.Column
 			if tt.groupBy != nil {
@@ -107,8 +107,8 @@ var avoidOptimizations []parquet.Value
 
 func BenchmarkGroupingColumnIterator_NextGroup(b *testing.B) {
 	filename := tf.New(b, tf.RandomNested(100_000, 10))
-	file := tf.Open(b, filename)
-	cols := LeafColumns(file)
+	_, pfile := tf.Open(b, filename)
+	cols := LeafColumns(pfile)
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {

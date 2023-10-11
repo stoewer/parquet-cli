@@ -19,6 +19,7 @@ var cli struct {
 	RowStats  rowStats  `cmd:"" help:"Show statistics about each row in a file"`
 	Aggregate aggregate `cmd:"" help:"Show aggregate statistics grouped by values in another column"`
 	Dump      dump      `cmd:"" help:"Print the content of the file"`
+	Info      info      `cmd:"" help:"Print general information about the parquet file"`
 }
 
 type outputOptions struct {
