@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	columnStatHeader = [...]interface{}{
+	columnStatHeader = [...]any{
 		"Index",
 		"Name",
 		"Max Def",
@@ -47,16 +47,16 @@ type ColumnStats struct {
 	PageMinNulls   int64  `json:"pageMinNulls"`
 	PageMaxNulls   int64  `json:"pageMaxNulls"`
 
-	cells []interface{}
+	cells []any
 }
 
-func (rs *ColumnStats) Data() interface{} {
+func (rs *ColumnStats) Data() any {
 	return rs
 }
 
-func (rs *ColumnStats) Cells() []interface{} {
+func (rs *ColumnStats) Cells() []any {
 	if rs.cells == nil {
-		rs.cells = []interface{}{
+		rs.cells = []any{
 			rs.Index,
 			rs.Name,
 			rs.MaxDef,
@@ -103,7 +103,7 @@ type ColStatCalculator struct {
 	current int
 }
 
-func (cc *ColStatCalculator) Header() []interface{} {
+func (cc *ColStatCalculator) Header() []any {
 	return columnStatHeader[:]
 }
 

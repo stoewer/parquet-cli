@@ -83,8 +83,8 @@ func newMetadataTable(m *format.FileMetaData) *metadataTable {
 	}
 }
 
-func (t *metadataTable) Header() []interface{} {
-	return []interface{}{
+func (t *metadataTable) Header() []any {
+	return []any{
 		"Type",
 		"TypeLength",
 		"RepetitionType",
@@ -125,8 +125,8 @@ func (r *metadataRow) Row() int {
 	return r.n
 }
 
-func (r *metadataRow) Cells() []interface{} {
-	return []interface{}{
+func (r *metadataRow) Cells() []any {
+	return []any{
 		r.s.Type,
 		r.s.TypeLength,
 		r.s.RepetitionType,
@@ -140,6 +140,6 @@ func (r *metadataRow) Cells() []interface{} {
 	}
 }
 
-func (r *metadataRow) Data() interface{} {
+func (r *metadataRow) Data() any {
 	return r.s
 }

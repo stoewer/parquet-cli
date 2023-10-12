@@ -33,7 +33,7 @@ func (f *Format) Validate() error {
 // A Table that can be printed / encoded in different output formats.
 type Table interface {
 	// Header returns the header of the table
-	Header() []interface{}
+	Header() []any
 	// NextRow returns a new TableRow until the error is io.EOF
 	NextRow() (TableRow, error)
 }
@@ -43,10 +43,10 @@ type TableRow interface {
 	// Cells returns all table cells for this row. This is used to
 	// print tabular formats such csv. The returned slice has the same
 	// length as the header slice returned by the parent Table.
-	Cells() []interface{}
+	Cells() []any
 	// Data returns the table row suitable for structured data formats
 	// such as json.
-	Data() interface{}
+	Data() any
 }
 
 // PrintTable writes the Table data to w using the provided format.
@@ -168,7 +168,7 @@ func printJSON(w io.Writer, data Table) error {
 	return err
 }
 
-func toStringSlice(in []interface{}, buf []string) []string {
+func toStringSlice(in []any, buf []string) []string {
 	for i, v := range in {
 		var s string
 		switch v := v.(type) {

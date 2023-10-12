@@ -24,12 +24,12 @@ type RowStats struct {
 	Stats     []RowCellStats
 }
 
-func (rs *RowStats) Data() interface{} {
+func (rs *RowStats) Data() any {
 	return rs.Stats
 }
 
-func (rs *RowStats) Cells() []interface{} {
-	cells := make([]interface{}, 0, len(rs.Stats)*len(rowCellFields)+1)
+func (rs *RowStats) Cells() []any {
+	cells := make([]any, 0, len(rs.Stats)*len(rowCellFields)+1)
 	cells = append(cells, rs.RowNumber)
 	for _, c := range rs.Stats {
 		cells = append(cells, c.Size, c.Values, c.Nulls)
@@ -59,7 +59,7 @@ func NewRowStatCalculator(file *parquet.File, options RowStatOptions) (*RowStatC
 	}
 
 	c := RowStatCalculator{
-		header:     make([]interface{}, 0, len(columns)*len(rowCellFields)+1),
+		header:     make([]any, 0, len(columns)*len(rowCellFields)+1),
 		columnIter: make([]*groupingColumnIterator, 0, len(columns)),
 	}
 
@@ -77,12 +77,12 @@ func NewRowStatCalculator(file *parquet.File, options RowStatOptions) (*RowStatC
 }
 
 type RowStatCalculator struct {
-	header     []interface{}
+	header     []any
 	columnIter []*groupingColumnIterator
 	rowNumber  int
 }
 
-func (c *RowStatCalculator) Header() []interface{} {
+func (c *RowStatCalculator) Header() []any {
 	return c.header
 }
 
