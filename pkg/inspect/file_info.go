@@ -76,10 +76,6 @@ func (r infoRow) Cells() []any {
 	return r
 }
 
-func (r infoRow) Data() any {
-	return r
-}
-
 func footerSize(file *os.File) (uint32, error) {
 	stat, err := file.Stat()
 	if err != nil {

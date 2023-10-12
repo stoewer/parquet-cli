@@ -37,15 +37,19 @@ type Table interface {
 	NextRow() (TableRow, error)
 }
 
+// SerializableData represents table data that can be converted to JSON.
+type SerializableData interface {
+	// Data returns the table data suitable for structured data formats
+	// such as json.
+	Data() any
+}
+
 // A TableRow represents all data that belongs to a table row.
 type TableRow interface {
 	// Cells returns all table cells for this row. This is used to
 	// print tabular formats such csv. The returned slice has the same
 	// length as the header slice returned by the parent Table.
 	Cells() []any
-	// Data returns the table row suitable for structured data formats
-	// such as json.
-	Data() any
 }
 
 // PrintTable writes the Table data to w using the provided format.
@@ -125,6 +129,12 @@ func printCSV(w io.Writer, data Table) error {
 }
 
 func printJSON(w io.Writer, data Table) error {
+	if serializable, ok := data.(SerializableData); ok {
+		enc := json.NewEncoder(w)
+		enc.SetIndent("", "  ")
+		return enc.Encode(serializable.Data())
+	}
+
 	_, err := fmt.Fprintln(w, "[")
 	if err != nil {
 		return err
@@ -143,9 +153,13 @@ func printJSON(w io.Writer, data Table) error {
 		if err != nil {
 			return err
 		}
+		serializableRow, ok := row.(SerializableData)
+		if !ok {
+			return errors.New("JSON not supported for sub command")
+		}
 
 		buf.Reset()
-		err = json.NewEncoder(buf).Encode(row.Data())
+		err = json.NewEncoder(buf).Encode(serializableRow.Data())
 		if err != nil {
 			return err
 		}
