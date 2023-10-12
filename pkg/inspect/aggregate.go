@@ -26,12 +26,12 @@ type Aggregate struct {
 	Stats []AggregateCellStats `json:"stats"`
 }
 
-func (rs *Aggregate) Data() interface{} {
+func (rs *Aggregate) Data() any {
 	return rs
 }
 
-func (rs *Aggregate) Cells() []interface{} {
-	cells := make([]interface{}, 0, len(rs.Stats)*len(aggregateCellFields)+1)
+func (rs *Aggregate) Cells() []any {
+	cells := make([]any, 0, len(rs.Stats)*len(aggregateCellFields)+1)
 	cells = append(cells, rs.Value)
 	for _, c := range rs.Stats {
 		cells = append(cells, c.Size, c.Values, c.Nulls)
@@ -76,7 +76,7 @@ func NewAggregateCalculator(file *parquet.File, options AggregateOptions) (*Aggr
 		}
 	}
 
-	header := make([]interface{}, 0, len(columns)*len(aggregateCellFields)+1)
+	header := make([]any, 0, len(columns)*len(aggregateCellFields)+1)
 	header = append(header, groupByColumn.Name()+" values")
 	for _, col := range columns {
 		header = append(header, fmt.Sprintf("%d/%s: %s", col.Index(), col.Name(), aggregateCellFields[0]), aggregateCellFields[1], aggregateCellFields[2])
@@ -92,12 +92,12 @@ func NewAggregateCalculator(file *parquet.File, options AggregateOptions) (*Aggr
 }
 
 type AggregateCalculator struct {
-	header    []interface{}
+	header    []any
 	result    []*Aggregate
 	resultIdx int
 }
 
-func (c *AggregateCalculator) Header() []interface{} {
+func (c *AggregateCalculator) Header() []any {
 	return c.header
 }
 

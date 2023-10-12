@@ -13,12 +13,12 @@ type DumpLine struct {
 	Line      []*parquet.Value
 }
 
-func (d *DumpLine) Data() interface{} {
+func (d *DumpLine) Data() any {
 	return d.Line
 }
 
-func (d *DumpLine) Cells() []interface{} {
-	cells := make([]interface{}, 0, len(d.Line)+1)
+func (d *DumpLine) Cells() []any {
+	cells := make([]any, 0, len(d.Line)+1)
 	if d.RowNumber == nil {
 		cells = append(cells, "")
 	} else {
@@ -61,7 +61,7 @@ func NewRowDump(file *parquet.File, options RowDumpOptions) (*RowDump, error) {
 	}
 
 	c := RowDump{
-		header:     make([]interface{}, 0, len(columns)+1),
+		header:     make([]any, 0, len(columns)+1),
 		columnIter: make([]*groupingColumnIterator, 0, len(columns)),
 		row: rowValues{
 			values: make([][]parquet.Value, len(columns)),
@@ -87,13 +87,13 @@ type rowValues struct {
 }
 
 type RowDump struct {
-	header     []interface{}
+	header     []any
 	columnIter []*groupingColumnIterator
 	rowNumber  int
 	row        rowValues
 }
 
-func (rd *RowDump) Header() []interface{} {
+func (rd *RowDump) Header() []any {
 	return rd.header
 }
 
