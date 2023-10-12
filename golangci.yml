@@ -6,6 +6,7 @@ linters:
   enable:
     - cyclop
     - errcheck
+    - errorlint
     - goconst
     - gofmt
     - goimports
