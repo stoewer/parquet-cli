@@ -5,7 +5,6 @@ go 1.21
 require (
 	github.com/alecthomas/kong v0.8.0
 	github.com/parquet-go/parquet-go v0.17.0
-	github.com/pkg/errors v0.9.1
 	github.com/segmentio/encoding v0.3.6
 	github.com/stretchr/testify v1.8.4
 )

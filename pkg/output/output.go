@@ -4,12 +4,11 @@ import (
 	"bytes"
 	"encoding/csv"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
 	"text/tabwriter"
-
-	"github.com/pkg/errors"
 )
 
 // Format describes a printable data representation.
@@ -59,7 +58,7 @@ func PrintTable(w io.Writer, f Format, data Table) error {
 	case FormatCSV:
 		return printCSV(w, data)
 	default:
-		return errors.Errorf("format not supported yet '%s'", f)
+		return fmt.Errorf("format not supported yet '%s'", f)
 	}
 }
 

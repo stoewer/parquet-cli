@@ -1,10 +1,11 @@
 package inspect
 
 import (
+	"errors"
+	"fmt"
 	"io"
 
 	"github.com/parquet-go/parquet-go"
-	"github.com/pkg/errors"
 	"github.com/stoewer/parquet-cli/pkg/output"
 )
 
@@ -88,7 +89,7 @@ func NewColStatCalculator(file *parquet.File, selectedCols []int) (*ColStatCalcu
 		columns = make([]*parquet.Column, 0, len(selectedCols))
 		for _, idx := range selectedCols {
 			if idx >= len(all) {
-				return nil, errors.Errorf("column index expectd be below %d but was %d", idx, len(all))
+				return nil, fmt.Errorf("column index expectd be below %d but was %d", idx, len(all))
 			}
 			columns = append(columns, all[idx])
 		}
@@ -109,7 +110,7 @@ func (cc *ColStatCalculator) Header() []any {
 
 func (cc *ColStatCalculator) NextRow() (output.TableRow, error) {
 	if cc.current >= len(cc.columns) {
-		return nil, errors.Wrapf(io.EOF, "stop iteration: no more culumns")
+		return nil, fmt.Errorf("stop iteration: no more culumns: %w", io.EOF)
 	}
 
 	col := cc.columns[cc.current]
@@ -148,23 +149,9 @@ func (cc *ColStatCalculator) NextRow() (output.TableRow, error) {
 			page, err = pages.ReadPage()
 		}
 		if !errors.Is(err, io.EOF) {
-			return nil, errors.Wrapf(err, "unable to read page rom column '%s", col.Name())
+			return nil, fmt.Errorf("unable to read page rom column '%s': %w", col.Name(), err)
 		}
 	}
 
 	return &stats, nil
-}
-
-func min(a, b int64) int64 {
-	if a < b {
-		return a
-	}
-	return b
-}
-
-func max(a, b int64) int64 {
-	if a > b {
-		return a
-	}
-	return b
 }

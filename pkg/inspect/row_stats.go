@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/parquet-go/parquet-go"
-	"github.com/pkg/errors"
 	"github.com/stoewer/parquet-cli/pkg/output"
 )
 
@@ -52,7 +51,7 @@ func NewRowStatCalculator(file *parquet.File, options RowStatOptions) (*RowStatC
 		columns = make([]*parquet.Column, 0, len(options.Columns))
 		for _, idx := range options.Columns {
 			if idx >= len(all) {
-				return nil, errors.Errorf("column index expectd be below %d but was %d", idx, len(all))
+				return nil, fmt.Errorf("column index expectd be below %d but was %d", idx, len(all))
 			}
 			columns = append(columns, all[idx])
 		}
@@ -67,7 +66,7 @@ func NewRowStatCalculator(file *parquet.File, options RowStatOptions) (*RowStatC
 	for _, col := range columns {
 		it, err := newGroupingColumnIterator(col, nil, options.Pagination)
 		if err != nil {
-			return nil, errors.Wrapf(err, "unable to create row stats calculator")
+			return nil, fmt.Errorf("unable to create row stats calculator: %w", err)
 		}
 		c.columnIter = append(c.columnIter, it)
 		c.header = append(c.header, fmt.Sprintf("%d/%s: %s", col.Index(), col.Name(), rowCellFields[0]), rowCellFields[1], rowCellFields[2])
