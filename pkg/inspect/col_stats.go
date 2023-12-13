@@ -125,7 +125,10 @@ func (cc *ColStatCalculator) NextRow() (output.TableRow, error) {
 	for _, rg := range cc.file.RowGroups() {
 		chunk := rg.ColumnChunks()[col.Index()]
 
-		index := chunk.OffsetIndex()
+		index, err := chunk.OffsetIndex()
+		if err != nil {
+			return nil, fmt.Errorf("unable to read offset index from column '%s': %w", col.Name(), err)
+		}
 		if index != nil {
 			for i := 0; i < index.NumPages(); i++ {
 				stats.CompressedSize += index.CompressedPageSize(i)
