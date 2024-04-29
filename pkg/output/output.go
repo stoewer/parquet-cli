@@ -11,49 +11,8 @@ import (
 	"text/tabwriter"
 )
 
-// Format describes a printable data representation.
-type Format string
-
-const (
-	FormatJSON = "json"
-	FormatCSV  = "csv"
-	FormatTab  = "tab"
-)
-
-func (f *Format) Validate() error {
-	switch *f {
-	case FormatJSON, FormatTab, FormatCSV:
-		return nil
-	default:
-		return errors.New("output format is expected to be 'json', 'tab', or 'csv'")
-	}
-}
-
-// A Table that can be printed / encoded in different output formats.
-type Table interface {
-	// Header returns the header of the table
-	Header() []any
-	// NextRow returns a new TableRow until the error is io.EOF
-	NextRow() (TableRow, error)
-}
-
-// SerializableData represents table data that can be converted to JSON.
-type SerializableData interface {
-	// Data returns the table data suitable for structured data formats
-	// such as json.
-	Data() any
-}
-
-// A TableRow represents all data that belongs to a table row.
-type TableRow interface {
-	// Cells returns all table cells for this row. This is used to
-	// print tabular formats such csv. The returned slice has the same
-	// length as the header slice returned by the parent Table.
-	Cells() []any
-}
-
-// PrintTable writes the Table data to w using the provided format.
-func PrintTable(w io.Writer, f Format, data Table) error {
+// PrintTable writes the TableIterator data to w using the provided format.
+func PrintTable(w io.Writer, f Format, data TableIterator) error {
 	switch f {
 	case FormatJSON:
 		return printJSON(w, data)
@@ -66,7 +25,7 @@ func PrintTable(w io.Writer, f Format, data Table) error {
 	}
 }
 
-func printTab(w io.Writer, data Table) error {
+func printTab(w io.Writer, data TableIterator) error {
 	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
 
 	formatBuilder := strings.Builder{}
@@ -97,7 +56,7 @@ func printTab(w io.Writer, data Table) error {
 	return tw.Flush()
 }
 
-func printCSV(w io.Writer, data Table) error {
+func printCSV(w io.Writer, data TableIterator) error {
 	cw := csv.NewWriter(w)
 	cw.Comma = ';'
 
@@ -128,11 +87,11 @@ func printCSV(w io.Writer, data Table) error {
 	return cw.Error()
 }
 
-func printJSON(w io.Writer, data Table) error {
-	if serializable, ok := data.(SerializableData); ok {
+func printJSON(w io.Writer, data TableIterator) error {
+	if serializable, ok := data.(Serializable); ok {
 		enc := json.NewEncoder(w)
 		enc.SetIndent("", "  ")
-		return enc.Encode(serializable.Data())
+		return enc.Encode(serializable.SerializableData())
 	}
 
 	_, err := fmt.Fprintln(w, "[")
@@ -153,13 +112,13 @@ func printJSON(w io.Writer, data Table) error {
 		if err != nil {
 			return err
 		}
-		serializableRow, ok := row.(SerializableData)
+		serializableRow, ok := row.(Serializable)
 		if !ok {
 			return errors.New("JSON not supported for sub command")
 		}
 
 		buf.Reset()
-		err = json.NewEncoder(buf).Encode(serializableRow.Data())
+		err = json.NewEncoder(buf).Encode(serializableRow.SerializableData())
 		if err != nil {
 			return err
 		}

@@ -12,7 +12,7 @@ type DumpLine struct {
 	Line      []*parquet.Value
 }
 
-func (d *DumpLine) Data() any {
+func (d *DumpLine) SerializableData() any {
 	return d.Line
 }
 

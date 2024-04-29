@@ -51,7 +51,7 @@ type ColumnStats struct {
 	cells []any
 }
 
-func (rs *ColumnStats) Data() any {
+func (rs *ColumnStats) SerializableData() any {
 	return rs
 }
 
