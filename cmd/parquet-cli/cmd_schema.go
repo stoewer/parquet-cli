@@ -140,6 +140,6 @@ func (r *metadataRow) Cells() []any {
 	}
 }
 
-func (r *metadataRow) Data() any {
+func (r *metadataRow) SerializableData() any {
 	return r.s
 }
