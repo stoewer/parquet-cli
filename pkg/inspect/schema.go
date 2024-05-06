@@ -10,7 +10,7 @@ import (
 	"github.com/parquet-go/parquet-go"
 )
 
-var headers = []any{
+var schemaHeader = [...]any{
 	"Index",
 	"Name",
 	"Optional",
@@ -51,7 +51,7 @@ func (s *Schema) Text() (string, error) {
 }
 
 func (s *Schema) Header() []any {
-	return headers
+	return schemaHeader[:]
 }
 
 func (s *Schema) NextRow() (output.TableRow, error) {
