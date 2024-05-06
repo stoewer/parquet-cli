@@ -9,6 +9,7 @@ import (
 
 type colStats struct {
 	outputOptions
+	Verbose bool   `short:"v" optional:"" help:"Print additional information"`
 	File    string `arg:""`
 	Columns []int  `short:"c" optional:"" help:"Restrict the output to the following columns"`
 }
@@ -19,10 +20,10 @@ func (cs *colStats) Run() error {
 		return err
 	}
 
-	rowStats, err := inspect.NewColStatCalculator(file, cs.Columns)
+	stats, err := inspect.NewColStatCalculator(file, cs.Columns, cs.Verbose)
 	if err != nil {
 		return err
 	}
 
-	return output.PrintTable(os.Stdout, cs.Output, rowStats)
+	return output.Print(os.Stdout, stats, &output.PrintOptions{Format: cs.Output})
 }
