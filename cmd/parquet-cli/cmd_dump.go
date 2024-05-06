@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"os"
 
 	"github.com/stoewer/parquet-cli/pkg/inspect"
@@ -17,10 +16,6 @@ type dump struct {
 }
 
 func (d *dump) Run() error {
-	if d.Output == output.FormatJSON {
-		return errors.New("JSON output not supported for dump command")
-	}
-
 	file, err := openParquetFile(d.File)
 	if err != nil {
 		return err
@@ -39,5 +34,5 @@ func (d *dump) Run() error {
 		return err
 	}
 
-	return output.PrintTable(os.Stdout, d.Output, rowDump)
+	return output.Print(os.Stdout, rowDump, &output.PrintOptions{Format: d.Output})
 }
