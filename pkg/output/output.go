@@ -2,20 +2,17 @@ package output
 
 import (
 	"bytes"
-	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
-	"strings"
-	"text/tabwriter"
 )
 
 // PrintTable writes the TableIterator data to w using the provided format.
 func PrintTable(w io.Writer, f Format, data TableIterator) error {
 	switch f {
 	case FormatJSON:
-		return printJSON(w, data)
+		return printTableToJSON(w, data)
 	case FormatTab:
 		return printTab(w, data)
 	case FormatCSV:
@@ -25,69 +22,7 @@ func PrintTable(w io.Writer, f Format, data TableIterator) error {
 	}
 }
 
-func printTab(w io.Writer, data TableIterator) error {
-	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
-
-	formatBuilder := strings.Builder{}
-	for range data.Header() {
-		formatBuilder.WriteString("%v\t")
-	}
-	formatBuilder.WriteRune('\n')
-	format := formatBuilder.String()
-
-	_, err := fmt.Fprintf(tw, format, data.Header()...)
-	if err != nil {
-		return err
-	}
-
-	row, err := data.NextRow()
-	for err == nil {
-		_, err = fmt.Fprintf(tw, format, row.Cells()...)
-		if err != nil {
-			return err
-		}
-
-		row, err = data.NextRow()
-	}
-	if err != nil && !errors.Is(err, io.EOF) {
-		return err
-	}
-
-	return tw.Flush()
-}
-
-func printCSV(w io.Writer, data TableIterator) error {
-	cw := csv.NewWriter(w)
-	cw.Comma = ';'
-
-	header := data.Header()
-	lineBuffer := make([]string, len(header))
-
-	line := toStringSlice(header, lineBuffer)
-	err := cw.Write(line)
-	if err != nil {
-		return err
-	}
-
-	row, err := data.NextRow()
-	for err == nil {
-		line = toStringSlice(row.Cells(), lineBuffer)
-		err = cw.Write(line)
-		if err != nil {
-			return err
-		}
-
-		row, err = data.NextRow()
-	}
-	if err != nil && !errors.Is(err, io.EOF) {
-		return err
-	}
-
-	cw.Flush()
-	return cw.Error()
-}
-
-func printJSON(w io.Writer, data TableIterator) error {
+func printTableToJSON(w io.Writer, data TableIterator) error {
 	if serializable, ok := data.(Serializable); ok {
 		enc := json.NewEncoder(w)
 		enc.SetIndent("", "  ")
@@ -138,25 +73,4 @@ func printJSON(w io.Writer, data TableIterator) error {
 
 	_, err = fmt.Println("\n]")
 	return err
-}
-
-func toStringSlice(in []any, buf []string) []string {
-	for i, v := range in {
-		var s string
-		switch v := v.(type) {
-		case string:
-			s = v
-		case fmt.Stringer:
-			s = v.String()
-		default:
-			s = fmt.Sprint(v)
-		}
-
-		if i < len(buf) {
-			buf[i] = s
-		} else {
-			buf = append(buf, s)
-		}
-	}
-	return buf[0:len(in)]
 }

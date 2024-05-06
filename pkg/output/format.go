@@ -1,6 +1,9 @@
 package output
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 // Format describes a printable data representation.
 type Format string
@@ -21,7 +24,7 @@ func (f *Format) Validate() error {
 	}
 }
 
-func formatsFor(data any) []Format {
+func supportedFormats(data any) []Format {
 	var formats []Format
 	switch data.(type) {
 	case Serializable, SerializableIterator:
@@ -34,11 +37,20 @@ func formatsFor(data any) []Format {
 	return formats
 }
 
-func supportsFormat(data any, f Format) bool {
-	for _, format := range formatsFor(data) {
-		if format == f {
-			return true
+func errUnsupportedFormat(data any, f Format) error {
+	supported := supportedFormats(data)
+
+	var supportedPretty string
+	for i, format := range supportedFormats(data) {
+		if i > 0 {
+			if i == len(supported)-1 {
+				supportedPretty += " or "
+			} else {
+				supportedPretty += ", "
+			}
 		}
+		supportedPretty += "'" + string(format) + "'"
 	}
-	return false
+
+	return fmt.Errorf("format '%s' is not supported must be %s", f, supportedPretty)
 }
