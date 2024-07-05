@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/parquet-go/parquet-go"
 	"github.com/stoewer/parquet-cli/pkg/output"
@@ -21,6 +22,7 @@ var (
 		"Rows",
 		"Values",
 		"Nulls",
+		"Path",
 	}
 	columnStatHeaderFull = [...]any{
 		"Index",
@@ -39,6 +41,7 @@ var (
 		"Nulls",
 		"Page min nulls",
 		"Page max nulls",
+		"Path",
 	}
 )
 
@@ -53,6 +56,7 @@ type ColumnStats struct {
 	Rows           int64  `json:"rows"`
 	Values         int64  `json:"values"`
 	Nulls          int64  `json:"nulls"`
+	Path           string `json:"path"`
 }
 
 func (rs *ColumnStats) Cells() []any {
@@ -67,6 +71,7 @@ func (rs *ColumnStats) Cells() []any {
 		rs.Rows,
 		rs.Values,
 		rs.Nulls,
+		rs.Path,
 	}
 }
 
@@ -98,6 +103,7 @@ func (rs *ColumnStatsFull) Cells() []any {
 		rs.Nulls,
 		rs.PageMinNulls,
 		rs.PageMaxNulls,
+		rs.Path,
 	}
 }
 
@@ -144,7 +150,7 @@ func (cc *ColStatCalculator) NextRow() (output.TableRow, error) {
 	stats := ColumnStatsFull{
 		ColumnStats: ColumnStats{
 			Index:  col.Index(),
-			Name:   col.Name(),
+			Name:   PathToDisplayName(col.Path()),
 			MaxDef: col.MaxDefinitionLevel(),
 			MaxRep: col.MaxRepetitionLevel(),
 		},
@@ -163,6 +169,8 @@ func (cc *ColStatCalculator) NextRow() (output.TableRow, error) {
 			}
 		}
 
+		path := strings.Join(col.Path(), ".")
+
 		pages := chunk.Pages()
 		page, err := pages.ReadPage()
 		for err == nil {
@@ -178,6 +186,8 @@ func (cc *ColStatCalculator) NextRow() (output.TableRow, error) {
 			stats.PageMaxValues = max(stats.PageMaxValues, page.NumRows())
 			stats.PageMinRows = min(stats.PageMinRows, page.NumRows())
 			stats.PageMaxRows = max(stats.PageMaxRows, page.NumRows())
+
+			stats.Path = path
 
 			page, err = pages.ReadPage()
 		}
