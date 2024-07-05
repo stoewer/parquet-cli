@@ -82,7 +82,6 @@ func toSchemaNode(n *fieldWithPath) *schemaNode {
 	}
 
 	if n.Leaf() {
-		sn.IsLeaf = true
 		sn.Type = n.Type().String()
 		sn.GoType = n.GoType().String()
 		if n.Encoding() != nil {
@@ -139,26 +138,30 @@ type fieldWithPath struct {
 
 func fieldsFromSchema(schema *parquet.Schema) []fieldWithPath {
 	result := make([]fieldWithPath, 0)
+
 	for _, field := range schema.Fields() {
 		result = fieldsFromPathRecursive(field, []string{}, result)
 	}
+
+	var idx int
+	for i := range result {
+		if result[i].Leaf() {
+			result[i].Index = idx
+			idx++
+		}
+	}
+
 	return result
 }
 
 func fieldsFromPathRecursive(field parquet.Field, path []string, result []fieldWithPath) []fieldWithPath {
-	path = append(path, field.Name())
+	cpy := path[:len(path):len(path)]
+	path = append(cpy, field.Name())
 
 	result = append(result, fieldWithPath{Field: field, Path: path})
+
 	for _, child := range field.Fields() {
 		result = fieldsFromPathRecursive(child, path, result)
-	}
-
-	colIndex := 0
-	for i := range result {
-		if result[i].Leaf() {
-			result[i].Index = colIndex
-			colIndex++
-		}
 	}
 
 	return result
