@@ -24,7 +24,7 @@ func TestFileInfo(t *testing.T) {
 	row, err = fileInfo.NextRow()
 	checkFileInfoRow(t, row, err, "Footer", 558)
 	row, err = fileInfo.NextRow()
-	checkFileInfoRow(t, row, err, "Version", 1)
+	checkFileInfoRow(t, row, err, "Version", int32(2))
 	row, err = fileInfo.NextRow()
 	checkFileInfoRow(t, row, err, "Creator", "github.com/parquet-go/parquet-go")
 	row, err = fileInfo.NextRow()
