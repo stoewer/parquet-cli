@@ -18,6 +18,7 @@ var (
 		"Max Rep",
 		"Size",
 		"Compressed size",
+		"Size Ratio", // ✅ added
 		"Pages",
 		"Rows",
 		"Values",
@@ -31,6 +32,7 @@ var (
 		"Max Rep",
 		"Size",
 		"Compressed size",
+		"Size Ratio", // ✅ added
 		"Pages",
 		"Rows",
 		"Page min rows",
@@ -46,17 +48,18 @@ var (
 )
 
 type ColumnStats struct {
-	Index          int    `json:"index"`
-	Name           string `json:"name"`
-	MaxDef         int    `json:"max_def"`
-	MaxRep         int    `json:"max_rep"`
-	Size           int64  `json:"size"`
-	CompressedSize int64  `json:"compressed_size"`
-	Pages          int    `json:"pages"`
-	Rows           int64  `json:"rows"`
-	Values         int64  `json:"values"`
-	Nulls          int64  `json:"nulls"`
-	Path           string `json:"path"`
+	Index          int     `json:"index"`
+	Name           string  `json:"name"`
+	MaxDef         int     `json:"max_def"`
+	MaxRep         int     `json:"max_rep"`
+	Size           int64   `json:"size"`
+	CompressedSize int64   `json:"compressed_size"`
+	SizeRatio      float64 `json:"size_ratio"` // ✅ added
+	Pages          int     `json:"pages"`
+	Rows           int64   `json:"rows"`
+	Values         int64   `json:"values"`
+	Nulls          int64   `json:"nulls"`
+	Path           string  `json:"path"`
 }
 
 func (rs *ColumnStats) Cells() []any {
@@ -67,6 +70,7 @@ func (rs *ColumnStats) Cells() []any {
 		rs.MaxRep,
 		rs.Size,
 		rs.CompressedSize,
+		fmt.Sprintf("%.3f", rs.SizeRatio), // ✅formated
 		rs.Pages,
 		rs.Rows,
 		rs.Values,
@@ -93,6 +97,7 @@ func (rs *ColumnStatsFull) Cells() []any {
 		rs.MaxRep,
 		rs.Size,
 		rs.CompressedSize,
+		fmt.Sprintf("%.3f", rs.SizeRatio), // ✅formated
 		rs.Pages,
 		rs.Rows,
 		rs.PageMinRows,
@@ -156,17 +161,19 @@ func (cc *ColStatCalculator) NextRow() (output.TableRow, error) {
 		},
 	}
 
+	var totalSize int64 = cc.file.Size() // ✅ total size calculation
+
 	for _, rg := range cc.file.RowGroups() {
 		chunk := rg.ColumnChunks()[col.Index()]
 
 		index, err := chunk.OffsetIndex()
-		if err != nil {
-			return nil, fmt.Errorf("unable to read offset index from column '%s': %w", col.Name(), err)
-		}
-		if index != nil {
+		if err == nil && index != nil {
 			for i := 0; i < index.NumPages(); i++ {
 				stats.CompressedSize += index.CompressedPageSize(i)
 			}
+		} else {
+			// Evita o crash caso o OffsetIndex não esteja presente
+			stats.CompressedSize = 0
 		}
 
 		path := strings.Join(col.Path(), ".")
@@ -195,6 +202,11 @@ func (cc *ColStatCalculator) NextRow() (output.TableRow, error) {
 		if !errors.Is(err, io.EOF) {
 			return nil, fmt.Errorf("unable to read page rom column '%s': %w", col.Name(), err)
 		}
+	}
+
+	// ✅ Size Rate Calculation
+	if totalSize > 0 {
+		stats.SizeRatio = float64(stats.CompressedSize) / float64(totalSize)
 	}
 
 	if cc.verbose {
