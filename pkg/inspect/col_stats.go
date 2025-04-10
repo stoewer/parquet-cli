@@ -18,7 +18,7 @@ var (
 		"Max Rep",
 		"Size",
 		"Compressed size",
-		"Size Ratio", 
+		"Size Ratio",
 		"Pages",
 		"Rows",
 		"Values",
@@ -32,7 +32,7 @@ var (
 		"Max Rep",
 		"Size",
 		"Compressed size",
-		"Size Ratio", 
+		"Size Ratio",
 		"Pages",
 		"Rows",
 		"Page min rows",
@@ -54,7 +54,7 @@ type ColumnStats struct {
 	MaxRep         int     `json:"max_rep"`
 	Size           int64   `json:"size"`
 	CompressedSize int64   `json:"compressed_size"`
-	SizeRatio      float64 `json:"size_ratio"` 
+	SizeRatio      float64 `json:"size_ratio"`
 	Pages          int     `json:"pages"`
 	Rows           int64   `json:"rows"`
 	Values         int64   `json:"values"`
@@ -70,7 +70,7 @@ func (rs *ColumnStats) Cells() []any {
 		rs.MaxRep,
 		rs.Size,
 		rs.CompressedSize,
-		fmt.Sprintf("%.3f", rs.SizeRatio), 
+		fmt.Sprintf("%.3f", rs.SizeRatio),
 		rs.Pages,
 		rs.Rows,
 		rs.Values,
@@ -97,7 +97,7 @@ func (rs *ColumnStatsFull) Cells() []any {
 		rs.MaxRep,
 		rs.Size,
 		rs.CompressedSize,
-		fmt.Sprintf("%.3f", rs.SizeRatio), 
+		fmt.Sprintf("%.3f", rs.SizeRatio),
 		rs.Pages,
 		rs.Rows,
 		rs.PageMinRows,
@@ -161,7 +161,7 @@ func (cc *ColStatCalculator) NextRow() (output.TableRow, error) {
 		},
 	}
 
-	var totalSize int64 = cc.file.Size() 
+	var totalSize int64 = cc.file.Size()
 
 	for _, rg := range cc.file.RowGroups() {
 		chunk := rg.ColumnChunks()[col.Index()]
@@ -172,7 +172,7 @@ func (cc *ColStatCalculator) NextRow() (output.TableRow, error) {
 				stats.CompressedSize += index.CompressedPageSize(i)
 			}
 		} else {
-			stats.CompressedSize = 0   // Prevents a crash if the OffsetIndex is not present
+			stats.CompressedSize = 0 // Prevents a crash if the OffsetIndex is not present
 		}
 
 		path := strings.Join(col.Path(), ".")
@@ -203,7 +203,6 @@ func (cc *ColStatCalculator) NextRow() (output.TableRow, error) {
 		}
 	}
 
-	
 	if totalSize > 0 {
 		stats.SizeRatio = float64(stats.CompressedSize) / float64(totalSize)
 	}
