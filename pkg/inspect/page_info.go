@@ -113,8 +113,8 @@ func (p *PageInfo) NextRow() (output.TableRow, error) {
 		NumNulls:       page.NumNulls(),
 	}
 	if ok {
-		pl.MinVal = truncateString(minVal.String(), 25)
-		pl.MaxVal = truncateString(maxVal.String(), 25)
+		pl.MinVal = truncateString(minVal.String(), 40)
+		pl.MaxVal = truncateString(maxVal.String(), 40)
 	}
 
 	return &pl, nil
