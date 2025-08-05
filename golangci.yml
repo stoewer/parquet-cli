@@ -1,29 +1,36 @@
+version: "2"
+
 run:
   tests: true
-  timeout: 1m
 
 linters:
   enable:
     - cyclop
-    - errcheck
     - errorlint
     - goconst
-    - gofmt
-    - goimports
-    - gosimple
-    - govet
-    - ineffassign
+    - gocritic
     - misspell
     - revive
-    - staticcheck
-    - typecheck
     - unconvert
     - unparam
-    - unused
 
-linters-settings:
-  errcheck:
-    exclude-functions:
-      - (io.Closer).Close()
-  cyclop:
-    max-complexity: 20
+  settings:
+    cyclop:
+      max-complexity: 20
+    revive:
+      rules:
+        - name: exported
+          disabled: true
+    gocritic:
+      disabled-checks:
+        - ifElseChain
+    errcheck:
+      exclude-functions:
+        - (io.Closer).Close
+        - (*os.File).Close
+        - (*github.com/parquet-go/parquet-go.GenericWriter[T]).Close
+
+formatters:
+  enable:
+    - gofmt
+    - goimports

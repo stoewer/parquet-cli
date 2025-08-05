@@ -161,7 +161,7 @@ func (cc *ColStatCalculator) NextRow() (output.TableRow, error) {
 		},
 	}
 
-	var totalSize int64 = cc.file.Size()
+	totalSize := cc.file.Size()
 
 	for _, rg := range cc.file.RowGroups() {
 		chunk := rg.ColumnChunks()[col.Index()]
