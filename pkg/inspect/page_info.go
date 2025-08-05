@@ -16,9 +16,6 @@ type PageInfoOptions struct {
 }
 
 func NewPageInfo(file *parquet.File, opt PageInfoOptions) (*PageInfo, error) {
-	// fmt.Println(file.Schema())
-	fmt.Println(opt)
-
 	all := LeafColumns(file)
 	if opt.Column < 0 || opt.Column >= len(all) {
 		return nil, fmt.Errorf("column index expectd between 0 and %d, but was %d", len(all)-1, opt.Column)
