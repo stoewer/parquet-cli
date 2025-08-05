@@ -59,7 +59,7 @@ func NewPageInfo(file *parquet.File, opt PageInfoOptions) (*PageInfo, error) {
 	}
 
 	// forward to the correct page
-	pages := rowGroups[0].ColumnChunks()[opt.Column].Pages()
+	pages := rowGroups[currRowGroup].ColumnChunks()[opt.Column].Pages()
 	for currPage < int(opt.Offset) {
 		currPage++
 		_, err := pages.ReadPage()
