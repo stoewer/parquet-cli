@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
+	"unicode"
 
 	"github.com/stoewer/parquet-cli/pkg/output"
 
@@ -127,8 +129,8 @@ func (p *PageInfo) NextRow() (output.TableRow, error) {
 		NumNulls:       page.NumNulls(),
 	}
 	if ok {
-		pl.MinVal = truncateString(minVal.String(), 40)
-		pl.MaxVal = truncateString(maxVal.String(), 40)
+		pl.MinVal = sanitizeString(minVal.String(), 40)
+		pl.MaxVal = sanitizeString(maxVal.String(), 40)
 	}
 
 	p.currPage++
@@ -155,9 +157,19 @@ func (p *PageLine) Cells() []any {
 	return []any{p.RowGroup, p.Page, p.Size, p.CompressedSize, p.NumRows, p.NumValues, p.NumNulls, p.MinVal, p.MaxVal}
 }
 
-func truncateString(s string, max int) string {
-	if len(s) <= max {
+func sanitizeString(s string, limit int) string {
+	for i, r := range s {
+		if !unicode.IsPrint(r) {
+			return "<not printable>"
+		}
+		if i >= limit {
+			break
+		}
+	}
+	if len(s) <= limit {
 		return s
 	}
-	return s[:max] + "..."
+	s = s[:limit] + "..."
+
+	return strings.ReplaceAll(s, "\n", " ")
 }
