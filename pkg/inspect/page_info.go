@@ -123,7 +123,7 @@ func (p *PageInfo) NextRow() (output.TableRow, error) {
 		RowGroup:       p.currRowGroup,
 		Page:           p.currPage,
 		Size:           page.Size(),
-		CompressedSize: p.offsetIndex.CompressedPageSize(int(p.currPage - p.pageOffset)),
+		CompressedSize: p.offsetIndex.CompressedPageSize(p.currPage - p.pageOffset),
 		NumRows:        page.NumRows(),
 		NumValues:      page.NumValues(),
 		NumNulls:       page.NumNulls(),
