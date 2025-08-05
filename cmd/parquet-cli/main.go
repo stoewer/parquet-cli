@@ -20,6 +20,7 @@ var cli struct {
 	Aggregate aggregate `cmd:"" help:"Show aggregate statistics grouped by values in another column"`
 	Dump      dump      `cmd:"" help:"Print the content of the file"`
 	Info      info      `cmd:"" help:"Print general information about the parquet file"`
+	Pages     pages     `cmd:"" help:"Print information about the pages a certain colum"`
 }
 
 type outputOptions struct {
