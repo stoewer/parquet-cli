@@ -15,6 +15,17 @@ type PageInfoOptions struct {
 	Column int
 }
 
+type PageInfo struct {
+	Pagination
+	column       int
+	rowGroups    []parquet.RowGroup
+	offsetIndex  parquet.OffsetIndex
+	pages        parquet.Pages
+	currRowGroup int
+	currPage     int
+	pageOffset   int
+}
+
 func NewPageInfo(file *parquet.File, opt PageInfoOptions) (*PageInfo, error) {
 	all := LeafColumns(file)
 	if opt.Column < 0 || opt.Column >= len(all) {
@@ -25,7 +36,8 @@ func NewPageInfo(file *parquet.File, opt PageInfoOptions) (*PageInfo, error) {
 	rowGroups := file.RowGroups()
 	var (
 		currRowGroup int
-		currPage     int64
+		currPage     int
+		pageOffset   int
 	)
 	for currRowGroup < len(rowGroups) {
 		ci, err := rowGroups[currRowGroup].ColumnChunks()[opt.Column].ColumnIndex()
@@ -33,11 +45,12 @@ func NewPageInfo(file *parquet.File, opt PageInfoOptions) (*PageInfo, error) {
 			return nil, err
 		}
 
-		if currPage+int64(ci.NumPages()) > opt.Offset {
+		if currPage+ci.NumPages() > int(opt.Offset) {
 			break
 		}
 
-		currPage += int64(ci.NumPages())
+		currPage += ci.NumPages()
+		pageOffset = currPage
 		currRowGroup++
 	}
 
@@ -47,7 +60,7 @@ func NewPageInfo(file *parquet.File, opt PageInfoOptions) (*PageInfo, error) {
 
 	// forward to the correct page
 	pages := rowGroups[0].ColumnChunks()[opt.Column].Pages()
-	for currPage < opt.Offset {
+	for currPage < int(opt.Offset) {
 		currPage++
 		_, err := pages.ReadPage()
 		if err != nil {
@@ -55,31 +68,29 @@ func NewPageInfo(file *parquet.File, opt PageInfoOptions) (*PageInfo, error) {
 		}
 	}
 
+	offsetIndex, err := rowGroups[currRowGroup].ColumnChunks()[opt.Column].OffsetIndex()
+	if err != nil {
+		return nil, err
+	}
+
 	return &PageInfo{
 		Pagination:   opt.Pagination,
 		column:       opt.Column,
 		rowGroups:    rowGroups,
+		offsetIndex:  offsetIndex,
 		pages:        pages,
 		currRowGroup: currRowGroup,
 		currPage:     currPage,
+		pageOffset:   pageOffset,
 	}, nil
 }
 
-type PageInfo struct {
-	Pagination
-	column       int
-	rowGroups    []parquet.RowGroup
-	pages        parquet.Pages
-	currRowGroup int
-	currPage     int64
-}
-
 func (p *PageInfo) Header() []any {
-	return []any{"Row group", "Page", "Compressed size", "Rows", "Values", "Nulls", "Min val", "Max val"}
+	return []any{"Row group", "Page", "Size", "Compressed size", "Rows", "Values", "Nulls", "Min val", "Max val"}
 }
 
 func (p *PageInfo) NextRow() (output.TableRow, error) {
-	if p.currRowGroup >= len(p.rowGroups) || (p.Limit != nil && p.currPage >= p.Offset+*p.Limit) {
+	if p.currRowGroup >= len(p.rowGroups) || (p.Limit != nil && p.currPage >= int(p.Offset+*p.Limit)) {
 		return nil, io.EOF
 	}
 
@@ -94,17 +105,23 @@ func (p *PageInfo) NextRow() (output.TableRow, error) {
 			return nil, io.EOF
 		}
 
+		p.pageOffset += p.offsetIndex.NumPages()
 		p.pages = p.rowGroups[p.currRowGroup].ColumnChunks()[p.column].Pages()
+		p.offsetIndex, err = p.rowGroups[p.currRowGroup].ColumnChunks()[p.column].OffsetIndex()
+		if err != nil {
+			return nil, err
+		}
+
 		return p.NextRow()
 	}
 
-	p.currPage++
 	minVal, maxVal, ok := page.Bounds()
 
 	pl := PageLine{
 		RowGroup:       p.currRowGroup,
 		Page:           p.currPage,
-		CompressedSize: page.Size(),
+		Size:           page.Size(),
+		CompressedSize: p.offsetIndex.CompressedPageSize(int(p.currPage - p.pageOffset)),
 		NumRows:        page.NumRows(),
 		NumValues:      page.NumValues(),
 		NumNulls:       page.NumNulls(),
@@ -114,12 +131,18 @@ func (p *PageInfo) NextRow() (output.TableRow, error) {
 		pl.MaxVal = truncateString(maxVal.String(), 40)
 	}
 
+	p.currPage++
 	return &pl, nil
+}
+
+func (p *PageInfo) NextSerializable() (any, error) {
+	return p.NextRow()
 }
 
 type PageLine struct {
 	RowGroup       int    `json:"row_group"`
-	Page           int64  `json:"page"`
+	Page           int    `json:"page"`
+	Size           int64  `json:"size"`
 	CompressedSize int64  `json:"compressed_size"`
 	NumRows        int64  `json:"num_rows"`
 	NumValues      int64  `json:"num_values"`
@@ -129,11 +152,7 @@ type PageLine struct {
 }
 
 func (p *PageLine) Cells() []any {
-	return []any{p.RowGroup, p.Page, p.CompressedSize, p.NumRows, p.NumValues, p.NumNulls, p.MinVal, p.MaxVal}
-}
-
-func (p *PageLine) SerializableData() any {
-	return p
+	return []any{p.RowGroup, p.Page, p.Size, p.CompressedSize, p.NumRows, p.NumValues, p.NumNulls, p.MinVal, p.MaxVal}
 }
 
 func truncateString(s string, max int) string {
