@@ -1,6 +1,6 @@
 module github.com/stoewer/parquet-cli
 
-go 1.24.9
+go 1.25
 
 require (
 	github.com/alecthomas/kong v1.9.0
